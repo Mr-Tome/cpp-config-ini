@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "downloading development dependencies"
+bash scripts/configure_cmake.sh
