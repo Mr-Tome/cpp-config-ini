@@ -1,4 +1,29 @@
 #!/bin/bash
 
-echo "downloading development dependencies"
-bash scripts/configure_cmake.sh
+
+# Initialize a variable to track if 'clean' is found
+found_clean=false
+
+# Loop through all arguments
+for arg in "$@"; do
+    # Check if the argument contains 'clean'
+    if [[ $arg == *"clean"* ]]; then
+        found_clean=true
+        break
+    fi
+done
+
+# Based on the result, perform actions
+if $found_clean; then
+    echo "'clean' argument detected. Cleaning Development Dependencies."
+    rm -r $HOME/.configuration-dependencies/differential-equations
+	echo "Finished Cleaning Development Dependencies..."
+else
+    echo "Configuring Development Dependencies..."
+	echo "Configuring to this path: $HOME/.configuration-dependencies/differential-equations"
+	chmod +x scripts/configure_cmake.sh
+	bash scripts/configure_cmake.sh
+
+	echo "Finished Configuring Development Dependencies..."
+fi
+
