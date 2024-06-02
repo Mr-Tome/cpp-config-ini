@@ -12,9 +12,9 @@ These instructions will guide you through setting up and configuring the project
 
 ### Installing
 
-1. Clone the repository to your local machine.
-2. In your Git Bash window, change into the project directory.
-3. Configure the project by running this command:
+- Clone the repository to your local machine.
+- In your Git Bash window, change into the project directory.
+- Configure the project by running this command:
 
 	- `./configure`
 	
