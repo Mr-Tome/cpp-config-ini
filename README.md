@@ -16,9 +16,9 @@ These instructions will guide you through setting up and configuring the project
 2. In your Git Bash window, change into the project directory.
 3. Configure the project by running this command:
 
-`./configure`
+	- `./configure`
 	
-	- This script checks for dependencies and sets up the necessary configuration files for compiling and installing the software.
+- This script checks for dependencies and sets up the necessary configuration files for compiling and installing the software.
 
 ### Running Tests
 
@@ -28,6 +28,6 @@ TODO: Explain how to run tests for this system.
 
 If you wish to clean all items configured by the ./configure script, you can perform a clean operation. This is useful for resetting the project setup to its initial state:
 
-`./configure clean`
+	- `./configure clean`
 
 This command will remove any files or configurations that were set up during the `./configure` process, allowing you to start fresh.
