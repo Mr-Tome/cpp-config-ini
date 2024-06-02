@@ -8,7 +8,9 @@ destination="$HOME/.configuration-dependencies/differential-equations"
 destination_dep="$destination/cmake-$cmake_ver-$op_sys"
 
 if [ -d $destination_dep ]; then
-	echo "CMake $cmake_ver-$op_sys already exists...skipping"
+	echo "CMake $cmake_ver-$op_sys already exists."
+	echo "Testing the download."
+	$destination_dep/bin/cmake.exe --version
 else
 	echo "Downloading CMake v$cmake_ver"
 	# Define the URL of the CMake installer
@@ -34,6 +36,10 @@ else
 	# Clean up the ZIP file
 	echo "Cleaning up the downloaded ZIP file" 
 	rm $zip_file
+	
+	#Testing the download
+	echo "Testing the download."
+	$destination_dep/bin/cmake.exe --version
 fi
 
 
