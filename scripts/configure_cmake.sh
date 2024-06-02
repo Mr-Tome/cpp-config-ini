@@ -21,14 +21,14 @@ else
 	curl -L -o $zip_file $url
 
 	# Check if the destination directory exists; if not, create it
-	if [! -d $destination ]; then
+	if [ -d $destination ]; then
+		echo "$destination exists"
+	else
 		echo "making $destination"
 		mkdir -p $destination
-	else
-		echo "$destination exists"
 	fi
 	echo "Extracting the ZIP archive to the aforementioned destination directory."
-	unzip -q $zip_file -d $
+	unzip -q $zip_file -d $destination
 	echo "CMake ZIP archive extracted to $destination."
 
 	# Clean up the ZIP file

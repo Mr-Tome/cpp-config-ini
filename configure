@@ -25,5 +25,6 @@ else
 	bash scripts/configure_cmake.sh
 
 	echo "Finished Configuring Development Dependencies..."
+	echo "To remove these depdencies, run ./configure clean"
 fi
 
