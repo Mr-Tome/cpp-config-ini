@@ -26,8 +26,8 @@ TODO: Explain how to run tests for this system.
 
 ## Cleaning Up
 
-If you wish to clean all items configured by the ./configure script, you can perform a clean operation. This is useful for resetting the project setup to its initial state:
+If you wish to clean all items configured by the ./configure script, you can perform a clean operation. This is useful for resetting the machines state to its initial state:
 
-	- ./configure clean
+	./configure clean
 
 This command will remove any files or configurations that were set up during the `./configure` process, allowing you to start fresh.
