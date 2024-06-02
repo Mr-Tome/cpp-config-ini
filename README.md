@@ -16,7 +16,7 @@ Clone the repository to your local machine.
 In your Git Bash window, change into the project directory.
 Configure the project by running this command:
 
-	- ./configure
+	./configure
 	
 - This script checks for dependencies and sets up the necessary configuration files for compiling and installing the software.
 
