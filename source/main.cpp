@@ -8,7 +8,7 @@ int main(){
 	std::string finishedAnswer;
 	while(true)
 	{
-		std::cout << "Finished (yes/no)?\n";
+		std::cout << "CPP Template is great (yes/no)?\n";
 		std::cin >> finishedAnswer;
 		if(finishedAnswer=="yes" ||
 		finishedAnswer=="y" ||
