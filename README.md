@@ -18,8 +18,8 @@ Configure the project by running this command:
 
 	./configure
 
-- ./ is the the bash version of executing a file
-- configure is the name of the file within the project's root directory
+- ./ is the the bash version of executing a file.
+- configure is the name of the file within the project's root directory that is getting executed.
 - This script checks for dependencies and sets up the necessary configuration files for compiling and installing the software.
 
 ### Compiling and Building the project
