@@ -8,7 +8,7 @@ These instructions will guide you through setting up and configuring the project
 
 ### Prerequisites
 
-- Ensure you have Git installed on your system.
+- Ensure you have Git installed on your system (download from here: https://www.git-scm.com/download/win)
 
 ### Configuring the basic development dependencies
 
