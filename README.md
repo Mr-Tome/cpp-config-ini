@@ -1,6 +1,6 @@
 # CPP Template
 
-This is a cpp environment to learn and explore Differential Equation algorithms and implementations
+This is a cpp template project
 
 ## Getting Started
 
