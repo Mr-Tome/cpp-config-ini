@@ -1,0 +1,8 @@
+# Ignore all files of a certain type
+#*.log
+
+# Ignore the build directory
+build/
+
+# Ignore a specific file
+run

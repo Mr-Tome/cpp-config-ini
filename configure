@@ -21,8 +21,15 @@ if $found_clean; then
 else
     echo "Configuring Development Dependencies..."
 	echo "Configuring to this path: $HOME/.configuration-dependencies/differential-equations"
+	echo "Configuring CMake..."
 	chmod +x scripts/configure_cmake.sh
 	bash scripts/configure_cmake.sh
+	echo "Finished Configuring CMake"
+	echo "Configuring GCC..."
+	chmod +x scripts/configure_gcc.sh
+	bash scripts/configure_gcc.sh
+	echo "Finished Configuring GCC"
+
 
 	echo "Finished Configuring Development Dependencies..."
 	echo "To remove these depdencies, run ./configure clean"
