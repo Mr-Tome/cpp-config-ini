@@ -30,7 +30,6 @@ else
 	bash scripts/configure_gcc.sh
 	echo "Finished Configuring GCC"
 
-
 	echo "Finished Configuring Development Dependencies..."
 	echo ""
 	echo "1) Now you may execute ./make"
