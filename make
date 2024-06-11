@@ -23,5 +23,10 @@ else
 	touch run
 	chmod +x run
 	echo "#!/bin/bash" > run
-	echo "start build/differential-equations.exe" >> run	
+	echo "start build/differential-equations.exe" >> run
+	
+	echo "Finished Making CPP project..."
+	echo ""
+	echo "1) Now you may execute ./run"
+	echo "2) To remove these dependencies, run ./make clean"
 fi

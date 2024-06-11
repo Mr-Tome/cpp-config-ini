@@ -7,12 +7,12 @@ op_sys=windows-x86_64
 destination="$HOME/.configuration-dependencies/differential-equations"
 destination_dep="$destination/mingw64"
 
-if [ -d $destination_dep ]; then
+if [ -d "$destination_dep" ]; then
 	echo "GCC $gcc_ver-$op_sys already exists."
 	echo ""
 	echo "Testing the download by checking the version: gcc.exe --version, "
 	echo ""
-	$destination_dep/bin/gcc.exe --version
+	"$destination_dep"/bin/gcc.exe --version
 	echo ""
 	echo "Finished Testing the download."
 else
@@ -27,14 +27,14 @@ else
 	curl -L -o $zip_file $url
 
 	# Check if the destination directory exists; if not, create it
-	if [ -d $destination ]; then
+	if [ -d "$destination" ]; then
 		echo "$destination exists"
 	else
 		echo "making $destination"
-		mkdir -p $destination
+		mkdir -p "$destination"
 	fi
 	echo "Extracting the ZIP archive to the aforementioned destination directory..."
-	unzip -q $zip_file -d $destination
+	unzip -q $zip_file -d "$destination"
 	echo "GCC ZIP archive extracted to $destination."
 
 	# Clean up the ZIP file
@@ -45,7 +45,7 @@ else
 	echo ""
 	echo "Testing the download by checking the version: gcc.exe --version, "
 	echo ""
-	$destination_dep/bin/gcc.exe --version
+	"$destination_dep"/bin/gcc.exe --version
 	echo ""
 	echo "Finished Testing the download."
 fi

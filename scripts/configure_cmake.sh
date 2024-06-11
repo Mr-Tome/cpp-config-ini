@@ -7,10 +7,10 @@ op_sys=windows-x86_64
 destination="$HOME/.configuration-dependencies/differential-equations"
 destination_dep="$destination/cmake-$cmake_ver-$op_sys"
 
-if [ -d $destination_dep ]; then
+if [ -d "$destination_dep" ]; then
 	echo "CMake $cmake_ver-$op_sys already exists."
 	echo "Testing the download."
-	$destination_dep/bin/cmake.exe --version
+	"$destination_dep"/bin/cmake.exe --version
 else
 	echo "Downloading CMake v$cmake_ver"
 	# Define the URL of the CMake installer
@@ -23,14 +23,14 @@ else
 	curl -L -o $zip_file $url
 
 	# Check if the destination directory exists; if not, create it
-	if [ -d $destination ]; then
+	if [ -d "$destination" ]; then
 		echo "$destination exists"
 	else
 		echo "making $destination"
-		mkdir -p $destination
+		mkdir -p "$destination"
 	fi
 	echo "Extracting the ZIP archive to the aforementioned destination directory."
-	unzip -q $zip_file -d $destination
+	unzip -q $zip_file -d "$destination"
 	echo "CMake ZIP archive extracted to $destination."
 
 	# Clean up the ZIP file
@@ -39,7 +39,7 @@ else
 	
 	#Testing the download
 	echo "Testing the download."
-	$destination_dep/bin/cmake.exe --version
+	"$destination_dep"/bin/cmake.exe --version
 fi
 
 

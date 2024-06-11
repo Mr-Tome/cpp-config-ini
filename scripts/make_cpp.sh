@@ -7,10 +7,10 @@ op_sys=windows-x86_64
 destination="$HOME/.configuration-dependencies/differential-equations"
 destination_dep="$destination/cmake-$cmake_ver-$op_sys"
 
-CMAKE=$destination_dep/bin/cmake.exe
-GCC=$destination/mingw64/bin/gcc.exe
+CMAKE="$destination_dep"/bin/cmake.exe
+GCC="$destination"/mingw64/bin/gcc.exe
 
-if [ -d $destination_dep ]; then
+if [ -d "$destination_dep" ]; then
 	## Check if the Makefile exists
 	#echo "Checking if Makefile exists."
 	#if [[ ! -f "Makefile" ]]; then
@@ -24,7 +24,7 @@ if [ -d $destination_dep ]; then
 
 	# Build the project using make
 	echo "Building the project using Ninja..."
-	$CMAKE -B"build" -G Ninja
+	"$CMAKE" -B"build" -G Ninja
 	echo "Finished building the project."
 	cd build
 	ninja

@@ -16,7 +16,7 @@ done
 # Based on the result, perform actions
 if $found_clean; then
     echo "'clean' argument detected. Cleaning Development Dependencies."
-    rm -r $HOME/.configuration-dependencies/differential-equations
+    rm -r "$HOME/.configuration-dependencies/differential-equations"
 	echo "Finished Cleaning Development Dependencies..."
 else
     echo "Configuring Development Dependencies..."
@@ -32,6 +32,8 @@ else
 
 
 	echo "Finished Configuring Development Dependencies..."
-	echo "To remove these depdencies, run ./configure clean"
+	echo ""
+	echo "1) Now you may execute ./make"
+	echo "2) To remove these dependencies, run ./configure clean"
 fi
 
