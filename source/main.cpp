@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 #include <stdlib.h>
+#include "cpp/point.cpp"
+#include "cpp/math/complex.h"
 
 int main(){
 	std::string finishedAnswer;

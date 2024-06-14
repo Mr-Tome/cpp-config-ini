@@ -48,4 +48,11 @@ If you wish to clean all items configured by the ./configure or ./make script, y
 This command will remove any files or configurations that were set up during the `./configure` and `./make` process, allowing you to start fresh.
 
 ## How to develop and Modify Files
-TODO
+- This template uses CMake which is mostly controlled by CMakeLists.txt at the root directory.
+- If you read this CmakeLists.txt file, you'll notice this line
+
+	add_subdirectory(source/cpp)
+	
+- This line tells CMake that it should look for another CMakeLists.txt in the source/cpp directory, but this can be any path you want.
+- If you read the source/cpp/CmakeLists.txt, you'll notice that there's files and directory paths called out. These are included into the compiled executable during run!
+- You may include directories by adding more add_subdirectories within any of the CMakeLists.txt
