@@ -5,7 +5,10 @@ This is a cpp template project
 A visual summary of this guide:
 ```mermaid
 flowchart TD
-    A[Start]
+A[Start]
+A-->Gitbash
+Gitbash-->clone
+clone-->configure-->make
     A-->Compiler{Compiler}
     A-->VisualStudio
     Compiler-->MSYS2{MSYS2}
@@ -31,12 +34,6 @@ flowchart TD
     GTest[Google test & Doxygen]-. integrate .->CLion
     GTest[Google test & Doxygen]-. integrate .->CMake
 
-    subgraph tooling
-    Additional[Additional tooling]---ReSharper
-    Additional---ClangTidy
-    Additional---ClangFormat
-    Additional---Incredibuild
-    end
 ```
 
 
