@@ -7,8 +7,10 @@ A visual summary of this guide:
 flowchart TD
 A[Start]
 A-->Gitbash
-Gitbash-->clone
-clone-->configure-->make
+Gitbash-->clone["git clone %project_url%"]
+clone-->configure["./configure"]-->make["./make"]
+
+ GitHub[(GitHub)]==>clone
     A-->Compiler{Compiler}
     A-->VisualStudio
     Compiler-->MSYS2{MSYS2}
