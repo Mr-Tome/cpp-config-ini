@@ -4,37 +4,22 @@ This is a cpp template project
 
 A visual summary of this guide:
 ```mermaid
-flowchart TD
-A[Start]
-A-->Gitbash
-Gitbash-->clone["git clone %project_url%"]
-clone-->configure["./configure"]-->make["./make"]
+flowchart
+	A[Start]
+	A-->Gitbash["1. Download Gitbash"]
+	Gitbash-->clone["2. git clone %project_url%"]-->configure["3. ./configure"]-->make["4. ./make"] --> run["5. ./run"]
+subgraph "%USERPROFILE%/cpp-template"
+	CMake
+	GCC
+end
 
- GitHub[(GitHub)]==>clone
-    A-->Compiler{Compiler}
-    A-->VisualStudio
-    Compiler-->MSYS2{MSYS2}
-    MSYS2--->GCC
-    MSYS2--->Clang
-    Compiler-->MSVC
+configure-->|"downloads"|CMake[CMake]
+configure-->|"downloads"|GCC[GCC]
 
-    GCC-->CMake
-    Clang-->CMake
-    MSVC-->CMake
 
-    CMake-->IDE{IDE}
-    IDE-->VisualStudio
-    IDE-->QtCreator
-    IDE-->CLion
 
-    CMake-->Editor{Text Editor}
-    Editor-->Vim
-    Editor-->VSCode[Visual Studio Code]
-    
-    GTest[Google test & Doxygen]-. integrate .->VisualStudio
-    GTest[Google test & Doxygen]-. integrate .->VSCode
-    GTest[Google test & Doxygen]-. integrate .->CLion
-    GTest[Google test & Doxygen]-. integrate .->CMake
+
+
 
 ```
 
