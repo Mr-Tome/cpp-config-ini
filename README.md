@@ -2,6 +2,28 @@
 
 This is a cpp template project
 
+A visual summary of this guide:
+```mermaid
+flowchart
+	A[Start]
+	A-->Gitbash["1. Download Gitbash"]
+	Gitbash-->clone["2. git clone %project_url%"]-->configure["3. ./configure"]-->make["4. ./make"] --> run["5. ./run"]
+subgraph "%USERPROFILE%/cpp-template"
+	CMake
+	GCC
+end
+
+configure-->|"downloads"|CMake[CMake]
+configure-->|"downloads"|GCC[GCC]
+
+
+
+
+
+
+```
+
+
 ## Getting Started
 
 These instructions will guide you through setting up and configuring the project on your local machine for development and testing purposes.
