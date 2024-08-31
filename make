@@ -23,7 +23,7 @@ else
 	touch run
 	chmod +x run
 	echo "#!/bin/bash" > run
-	echo "start build/differential-equations.exe" >> run
+	echo "start build/configs.exe" >> run
 	
 	echo "Finished Making CPP project..."
 	echo ""
