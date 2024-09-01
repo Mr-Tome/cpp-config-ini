@@ -7,7 +7,26 @@
 #include <vector>
 #include <functional>
 
+// Config generation at compile-time
+namespace ConfigGen {
+    struct ConfigItem {
+		const char* name;
+        const char* type;
+        const char* defaultValue;
+        const char* description;
+        const char* validationRule;
+    };
 
+    struct ConfigSection {
+        const char* name;
+        const ConfigItem* items;
+        size_t itemCount;
+    };
+
+    constexpr bool validateConfigStructure();
+    bool validateConfig(const ConfigSection* sections, size_t sectionCount);
+    std::string generateConfig(const ConfigSection* sections, size_t sectionCount);
+}
 
 class ConfigValue {
 public:
@@ -71,9 +90,13 @@ public:
     void setValidationRule(const std::string& section, const std::string& key, ValidationRule rule);
     void saveConfig() const;
 
+    virtual std::string getConfigFilePath() const = 0;
+    virtual const ConfigGen::ConfigSection* getConfigSections(size_t& sectionCount) const = 0;
+	
+	const std::unordered_map<std::string, ConfigSection>& getSections() const { return sections; }
+
 protected:
     virtual void setDefaultValues() = 0;
-    virtual std::string getConfigFilePath() const = 0;
 
     void loadConfig();
     static std::string trim(const std::string& str);
@@ -82,5 +105,6 @@ protected:
     std::unordered_map<std::string, ConfigSection> sections;
 };
 
+void generateConfigFile(const ConfigReader& reader);
 
 #endif // CONFIG_READER_H

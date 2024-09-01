@@ -1,13 +1,100 @@
 #include "config_reader.hpp"
 #include <fstream>
 #include <sstream>
+#include <typeinfo>
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
 
-// Implementation of TypedConfigValue methods
+namespace ConfigGen {
+    // This function can be used for compile-time checks if needed
+    constexpr bool validateConfigStructure() {
+        // Add any compile-time checks here
+        return true;
+    }
+
+    // Runtime validation of the configuration
+    bool validateConfig(const ConfigSection* sections, size_t sectionCount) {
+        // Add runtime checks here
+        return true;
+    }
+
+    std::string generateConfig(const ConfigSection* sections, size_t sectionCount) {
+        std::string config_content = "# Configuration file generated automatically\n\n";
+
+        for (size_t i = 0; i < sectionCount; ++i) {
+            const ConfigSection& section = sections[i];
+            config_content += "[" + std::string(section.name) + "]\n";
+            for (size_t j = 0; j < section.itemCount; ++j) {
+                const ConfigItem& item = section.items[j];
+                config_content += std::string(item.name) + " = " + std::string(item.defaultValue) + " # type: " +std::string(item.name) +", description: " + std::string(item.description);
+                if (item.validationRule[0] != '\0') {
+                    config_content += " (validationRule: " + std::string(item.validationRule) + ")";
+                }
+                config_content += "\n";
+            }
+            config_content += "\n";
+        }
+
+        config_content += R"(
+# Instructions for End Users
+# 1. Configuration File Format:
+#    * The configuration file is in INI format
+#    * Sections are denoted by square brackets: [SectionName]
+#    * Key-value pairs are separated by an equals sign: Key = Value
+#    * Comments start with a # symbol
+# 2. Modifying the Configuration:
+#    a. Open the configuration file (e.g., specific_algorithm_config.ini) in a text editor
+#    b. Locate the section and key you want to modify
+#    c. Change the value after the equals sign
+#    d. Save the file
+# 3. Example Configuration:
+#    [Section1]
+#    name1 = 0
+#    name2 = 1.0
+#    [Section2]
+#    name3 = 500.0
+#    [Section3]
+#    name4 = 10.0
+#    name5 = 20.0
+#    name1 = 30.0
+#    name2 = 1.0,2.0,3.0
+# 4. Adding New Values:
+#    * You can add new key-value pairs to existing sections
+#    * Do not add new sections unless instructed by the developers
+# 5. Value Types:
+#    * Numbers can be integers or decimals (e.g., 500 or 500.0)
+#    * Text should not be enclosed in quotes
+#    * Lists are comma-separated (e.g., 1.0,2.0,3.0)
+# 6. Validation:
+#    * Some values may have validation rules (e.g., must be positive)
+#    * If you enter an invalid value, the application will use the default value
+# 7. Troubleshooting:
+#    * If the application fails to start, check for typos in the configuration file
+#    * Ensure all required keys are present
+#    * If in doubt, rename or delete the configuration file to reset to defaults
+# 8. Best Practices:
+#    * Keep a backup of the original configuration file
+#    * Document any changes you make for future reference
+#    * If you're unsure about a setting, consult the application documentation or contact the developers
+# Remember, incorrect configuration can affect the application's performance or cause errors.
+# If you're unsure about a setting, it's best to consult with the development team or refer to the application's documentation.
+)";
+
+        return config_content;
+    }
+}
+
+
+//TypedConfigValue implementation
 template<typename T>
 TypedConfigValue<T>::TypedConfigValue(const T& val) : value(val) {}
+
+// Explicit instantiations for the constructors
+template TypedConfigValue<int>::TypedConfigValue(const int&);
+template TypedConfigValue<double>::TypedConfigValue(const double&);
+template TypedConfigValue<std::string>::TypedConfigValue(const std::string&);
+
 
 template<typename T>
 const T& TypedConfigValue<T>::getValue() const { return value; }
@@ -69,7 +156,7 @@ std::shared_ptr<ConfigValue> TypedConfigValue<std::vector<double>>::clone() cons
 // Implementation of ConfigSection methods
 template<typename T>
 void ConfigSection::setValue(const std::string& key, const T& value) {
-    std::cout << "ConfigSection::setValue called for key: " << key << std::endl;
+    std::cout << "ConfigSection::setValue called for key: " << key << " with type: " << typeid(T).name() << std::endl;
     try {
         auto it = values.find(key);
         if (it != values.end()) {
@@ -100,14 +187,63 @@ void ConfigSection::setValue(const std::string& key, const T& value) {
 
 template<typename T>
 T ConfigSection::getValue(const std::string& key) const {
+    std::cout << "ConfigSection::getValue called for key: " << key << std::endl;
     auto it = values.find(key);
     if (it != values.end()) {
-        auto typed_value = std::dynamic_pointer_cast<TypedConfigValue<T>>(it->second);
-        if (typed_value) {
-            return typed_value->getValue();
+        std::cout << "Key found in ConfigSection" << std::endl;
+        auto string_value = std::dynamic_pointer_cast<TypedConfigValue<std::string>>(it->second);
+        if (string_value) {
+            std::cout << "Successfully cast to TypedConfigValue<std::string>" << std::endl;
+            std::string str_value = string_value->getValue();
+            T result;
+            std::istringstream iss(str_value);
+            if (iss >> result) {
+                std::cout << "Successfully converted string to desired type" << std::endl;
+                return result;
+            } else {
+                std::cout << "Failed to convert string to desired type" << std::endl;
+            }
+        } else {
+            std::cout << "Failed to cast to TypedConfigValue<std::string>" << std::endl;
         }
+    } else {
+        std::cout << "Key not found in ConfigSection" << std::endl;
     }
     throw std::runtime_error("Key not found or type mismatch: " + key);
+}
+
+// Specialization for std::string to avoid unnecessary conversion
+template<>
+std::string ConfigSection::getValue<std::string>(const std::string& key) const {
+    std::cout << "ConfigSection::getValue<std::string> called for key: " << key << std::endl;
+    auto it = values.find(key);
+    if (it != values.end()) {
+        auto string_value = std::dynamic_pointer_cast<TypedConfigValue<std::string>>(it->second);
+        if (string_value) {
+            return string_value->getValue();
+        }
+    }
+    throw std::runtime_error("Key not found: " + key);
+}
+
+// Specialization for std::vector<double>
+template<>
+std::vector<double> ConfigSection::getValue<std::vector<double>>(const std::string& key) const {
+    std::cout << "ConfigSection::getValue<std::vector<double>> called for key: " << key << std::endl;
+    auto it = values.find(key);
+    if (it != values.end()) {
+        auto string_value = std::dynamic_pointer_cast<TypedConfigValue<std::string>>(it->second);
+        if (string_value) {
+            std::vector<double> result;
+            std::istringstream iss(string_value->getValue());
+            std::string token;
+            while (std::getline(iss, token, ',')) {
+                result.push_back(std::stod(token));
+            }
+            return result;
+        }
+    }
+    throw std::runtime_error("Key not found or invalid format: " + key);
 }
 
 bool ConfigSection::hasKey(const std::string& key) const {
@@ -130,9 +266,9 @@ ConfigReader::ConfigReader() : filepath("") {
 void ConfigReader::initialize() {
     std::cout << "ConfigReader::initialize started" << std::endl;
     try {
-        std::cout << "Calling setDefaultValues()" << std::endl;
-        setDefaultValues();
-        std::cout << "Default values set" << std::endl;
+        //std::cout << "Calling setDefaultValues()" << std::endl;
+        //setDefaultValues();
+        //std::cout << "Default values set" << std::endl;
 
         std::cout << "Calling getConfigFilePath()" << std::endl;
         filepath = getConfigFilePath();
@@ -154,10 +290,13 @@ void ConfigReader::initialize() {
 
 template<typename T>
 T ConfigReader::getValue(const std::string& section, const std::string& key) const {
+    std::cout << "Attempting to get value for section: " << section << ", key: " << key << std::endl;
     auto sect_it = sections.find(section);
     if (sect_it != sections.end()) {
+        std::cout << "Section found" << std::endl;
         return sect_it->second.getValue<T>(key);
     }
+    std::cout << "Section not found" << std::endl;
     throw std::runtime_error("Section not found: " + section);
 }
 
@@ -249,9 +388,33 @@ std::string ConfigReader::trim(const std::string& str) {
     return str.substr(strBegin, strRange);
 }
 
+// Implement the generateConfigFile function here
+void generateConfigFile(const ConfigReader& reader) {
+    size_t sectionCount;
+    const ConfigGen::ConfigSection* sections = reader.getConfigSections(sectionCount);
+
+	 // Perform runtime validation
+    if (!ConfigGen::validateConfig(sections, sectionCount)) {
+        throw std::runtime_error("Invalid configuration detected at runtime");
+    }
+	
+    // Generate the configuration content
+    std::string configContent = ConfigGen::generateConfig(sections, sectionCount);
+
+    std::ofstream configFile(reader.getConfigFilePath());
+    if (configFile.is_open()) {
+        configFile << configContent;
+        configFile.close();
+    } else {
+        throw std::runtime_error("Unable to open file for writing: " + reader.getConfigFilePath());
+    }
+}
+// Compile-time check
+static_assert(ConfigGen::validateConfigStructure(), "Invalid configuration structure detected at compile-time");
+
 // Explicit template instantiations
 template class TypedConfigValue<int>;
-template class TypedConfigValue<double>;
+template class TypedConfigValue<double>; 
 template class TypedConfigValue<std::string>;
 template class TypedConfigValue<std::vector<double>>;
 
