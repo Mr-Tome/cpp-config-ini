@@ -1,10 +1,10 @@
 #include "config_library/config_reader.hpp"
+#include "config_library/validation_rules.hpp"
 #include <iostream>
 #include <fstream>
 #include <memory>
 
 class SpecificAlgorithmConfig : public ConfigReader {
-	
 public:
     SpecificAlgorithmConfig() : ConfigReader() {
         std::cout << "SpecificAlgorithmConfig constructor started" << std::endl;
@@ -27,9 +27,9 @@ public:
         };
 
         static const ConfigGen::ConfigItem GENERAL_ITEMS[] = {
-            {"FW", "double", "10.0", "Fixed Wing value", ""},
-            {"RW", "double", "20.0", "Rotary Wing value", ""},
-            {"CM", "double", "30.0", "Cruise Missile value", ""},
+            {"FW", "double", "10.0", "Fixed Wing value", "Must be between 0 and 100"},
+            {"RW", "double", "20.0", "Rotary Wing value", "Must be between 0 and 100"},
+            {"CM", "double", "30.0", "Cruise Missile value", "Must be between 0 and 100"},
             {"Misc", "vector<double>", "1.0,2.0,3.0", "Misc item just for proof of principle", ""}
         };
 
@@ -42,40 +42,20 @@ public:
         sectionCount = sizeof(SECTIONS) / sizeof(SECTIONS[0]);
         return SECTIONS;
     }
+
 protected:
     void setDefaultValues() override {
-        // This method will now only be used for runtime initialization
-        // The actual default values are defined in getConfigSections
-		//std::cout << "SpecificAlgorithmConfig::setDefaultValues started" << std::endl;
-        //try {
-        //    std::cout << "Setting ABT.kor" << std::endl;
-        //    setDefaultValue("ABT", "kor", 500.0);
-        //    std::cout << "Setting ABT.koh" << std::endl;
-        //    setDefaultValue("ABT", "koh", 1.0);
-        //    std::cout << "Setting TBM.kor" << std::endl;
-        //    setDefaultValue("TBM", "kor", 500.0);
-        //    std::cout << "Setting General.FW" << std::endl;
-        //    setDefaultValue("General", "FW", 10.0);
-        //    std::cout << "Setting General.RW" << std::endl;
-        //    setDefaultValue("General", "RW", 20.0);
-        //    std::cout << "Setting General.CM" << std::endl;
-        //    setDefaultValue("General", "CM", 30.0);
-        //    std::cout << "Setting General.Factors" << std::endl;
-        //    setDefaultValue("General", "Factors", std::vector<double>{1.0, 2.0, 3.0});
-		//
-        //    std::cout << "Setting validation rule for ABT.kor" << std::endl;
-		//	setValidationRule("ABT", "kor", [](const ConfigValue& value) {
-		//		const TypedConfigValue<double>* typed_value = dynamic_cast<const TypedConfigValue<double>*>(&value);
-		//		return typed_value && typed_value->getValue() > 0;
-		//	});
-        //} catch (const std::exception& e) {
-        //    std::cerr << "Exception in SpecificAlgorithmConfig::setDefaultValues: " << e.what() << std::endl;
-        //    throw;
-        //} catch (...) {
-        //    std::cerr << "Unknown exception in SpecificAlgorithmConfig::setDefaultValues" << std::endl;
-        //    throw;
-        //}
-        //std::cout << "SpecificAlgorithmConfig::setDefaultValues finished" << std::endl;
+        // Set validation rules
+        setValidationRule("ABT", "kor", ValidationRules::greaterThanZero());
+        setValidationRule("TBM", "kor", ValidationRules::greaterThanZero());
+        setValidationRule("General", "FW", ValidationRules::betweenValues(0, 100));
+        setValidationRule("General", "RW", ValidationRules::betweenValues(0, 100));
+        setValidationRule("General", "CM", ValidationRules::betweenValues(0, 100));
+
+        // Custom validation rule example
+        setValidationRule("General", "Misc", ValidationRules::custom<std::vector<double>>([](const std::vector<double>& vec) {
+            return vec.size() == 3 && vec[0] < vec[1] && vec[1] < vec[2];
+        }));
     }
 };
 
