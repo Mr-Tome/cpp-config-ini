@@ -7,7 +7,18 @@ namespace ValidationRules {
 
 	bool GreaterThanZero::operator()(const ConfigValue& value) const {
 		const TypedConfigValue<double>* doubleValue = dynamic_cast<const TypedConfigValue<double>*>(&value);
-		return doubleValue && doubleValue->getValue() > 0;
+		if (doubleValue) {
+			return doubleValue->getValue() > 0;
+		}
+		const TypedConfigValue<std::string>* stringValue = dynamic_cast<const TypedConfigValue<std::string>*>(&value);
+		if (stringValue) {
+			try {
+				return std::stod(stringValue->getValue()) > 0;
+			} catch (...) {
+				return false;
+			}
+		}
+		return false;
 	}
 	
 	bool GreaterThanOrEqualToZero::operator()(const ConfigValue& value) const {
@@ -17,7 +28,19 @@ namespace ValidationRules {
 	
 	bool BetweenValues::operator()(const ConfigValue& value) const {
 		const TypedConfigValue<double>* doubleValue = dynamic_cast<const TypedConfigValue<double>*>(&value);
-		return doubleValue && doubleValue->getValue() >= min_ && doubleValue->getValue() <= max_;
+		if (doubleValue) {
+			return doubleValue->getValue() >= min_ && doubleValue->getValue() <= max_;
+		}
+		const TypedConfigValue<std::string>* stringValue = dynamic_cast<const TypedConfigValue<std::string>*>(&value);
+		if (stringValue) {
+			try {
+				double doubleVal = std::stod(stringValue->getValue());
+				return doubleVal >= min_ && doubleVal <= max_;
+			} catch (...) {
+				return false;
+			}
+		}
+		return false;
 	}
 	
 	std::string BetweenValues::toString() const {

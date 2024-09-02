@@ -67,6 +67,12 @@ public:
 private:
     std::unordered_map<std::string, std::shared_ptr<ConfigValue>> values;
     std::unordered_map<std::string, ValidationRule> validationRules;
+	
+	// Helper methods for setValue
+    std::shared_ptr<ConfigValue> setValueImpl(const std::string& key, const std::string& value, std::true_type);
+    
+    template<typename T>
+    std::shared_ptr<ConfigValue> setValueImpl(const std::string& key, const T& value, std::false_type);
 };
 
 class ConfigReader {

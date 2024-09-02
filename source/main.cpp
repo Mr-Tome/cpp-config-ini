@@ -8,6 +8,7 @@ class SpecificAlgorithmConfig : public ConfigReader {
 public:
     SpecificAlgorithmConfig() : ConfigReader() {
         std::cout << "SpecificAlgorithmConfig constructor started" << std::endl;
+		setValidationRules();
         std::cout << "SpecificAlgorithmConfig constructor finished" << std::endl;
     }
 
@@ -63,10 +64,19 @@ protected:
         //    return vec.size() == 3 && vec[0] < vec[1] && vec[1] < vec[2];
         //}));
     }
+private:
+	void setValidationRules() {
+        setValidationRule("ABT", "kor", ValidationRules::greaterThanZero);
+        setValidationRule("TBM", "kor", ValidationRules::greaterThanZero);
+        setValidationRule("General", "FW", ValidationRules::betweenValues(0, 100));
+        setValidationRule("General", "RW", ValidationRules::betweenValues(0, 100));
+        setValidationRule("General", "CM", ValidationRules::betweenValues(0, 100));
+    }
+
 };
 
-// This will force the compiler to generate the config file at compile time
-static const bool configGenerated = (generateConfigFile(SpecificAlgorithmConfig()), true);
+// This will force generation of the config file at run time
+//static const bool configGenerated = (generateConfigFile(SpecificAlgorithmConfig()), true);
 
  
 int main() {
@@ -87,23 +97,20 @@ int main() {
             std::cout << std::endl;
         }
         
-        // Use the config object here
+        // Testing validation logic
+        try {
+            config.setValue("General", "FW", 10.0);
+        } catch (const std::exception& e) {
+            std::cerr << "Validation error: " << e.what() << std::endl;
+        }
+
+        // Use the config object like this
         try {
             std::cout << "ABT.kor: " << config.getValue<double>("ABT", "kor") << std::endl;
-        } catch (const std::exception& e) {
-            std::cerr << "Error retrieving ABT.kor: " << e.what() << std::endl;
-        }
-        
-        try {
             std::cout << "TBM.kor: " << config.getValue<double>("TBM", "kor") << std::endl;
-        } catch (const std::exception& e) {
-            std::cerr << "Error retrieving TBM.kor: " << e.what() << std::endl;
-        }
-		
-		try {
             std::cout << "General.FW: " << config.getValue<double>("General", "FW") << std::endl;
         } catch (const std::exception& e) {
-            std::cerr << "Error retrieving General.FW: " << e.what() << std::endl;
+            std::cerr << "Error retrieving value: " << e.what() << std::endl;
         }
         
     } catch (const std::exception& e) {

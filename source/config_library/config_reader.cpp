@@ -162,20 +162,12 @@ template<typename T>
 void ConfigSection::setValue(const std::string& key, const T& value) {
     std::cout << "ConfigSection::setValue called for key: " << key << " with type: " << typeid(T).name() << std::endl;
     try {
-        auto it = values.find(key);
-        if (it != values.end()) {
-            auto typed_value = std::dynamic_pointer_cast<TypedConfigValue<T>>(it->second);
-            if (typed_value) {
-                typed_value->setValue(value);
-            } else {
-                values[key] = std::make_shared<TypedConfigValue<T>>(value);
-            }
-        } else {
-            values[key] = std::make_shared<TypedConfigValue<T>>(value);
-        }
+        std::shared_ptr<ConfigValue> newValue = setValueImpl(key, value, std::is_same<T, std::string>());
         
-        if (validationRules.count(key) > 0) {
-            if (!validationRules[key](*values[key])) {
+        // Apply validation rule if it exists
+        auto rule_it = validationRules.find(key);
+        if (rule_it != validationRules.end()) {
+            if (!rule_it->second(*newValue)) {
                 throw std::runtime_error("Validation failed for key: " + key);
             }
         }
@@ -187,6 +179,25 @@ void ConfigSection::setValue(const std::string& key, const T& value) {
         std::cerr << "Unknown exception in ConfigSection::setValue" << std::endl;
         throw;
     }
+}
+
+std::shared_ptr<ConfigValue> ConfigSection::setValueImpl(const std::string& key, const std::string& value, std::true_type) {
+    std::shared_ptr<ConfigValue> newValue;
+    if (values.find(key) != values.end()) {
+        values[key]->fromString(value);
+        newValue = values[key];
+    } else {
+        newValue = std::make_shared<TypedConfigValue<std::string>>(value);
+        values[key] = newValue;
+    }
+    return newValue;
+}
+
+template<typename T>
+std::shared_ptr<ConfigValue> ConfigSection::setValueImpl(const std::string& key, const T& value, std::false_type) {
+    auto newValue = std::make_shared<TypedConfigValue<T>>(value);
+    values[key] = newValue;
+    return newValue;
 }
 
 template<typename T>
@@ -262,7 +273,6 @@ const std::unordered_map<std::string, std::shared_ptr<ConfigValue>>& ConfigSecti
     return values;
 }
 
-// Implementation of ConfigReader methods
 ConfigReader::ConfigReader() : filepath("") {
     std::cout << "ConfigReader constructor started" << std::endl;
     std::cout << "ConfigReader constructor finished" << std::endl;
@@ -307,6 +317,17 @@ T ConfigReader::getValue(const std::string& section, const std::string& key) con
 template<typename T>
 void ConfigReader::setValue(const std::string& section, const std::string& key, const T& value) {
     sections[section].setValue(key, value);
+}
+
+template<>
+void ConfigReader::setValue<std::string>(const std::string& section, const std::string& key, const std::string& value) {
+    auto& sectionObj = sections[section];
+    auto it = sectionObj.getValues().find(key);
+    if (it != sectionObj.getValues().end()) {
+        it->second->fromString(value);
+    } else {
+        sectionObj.setValue(key, value);
+    }
 }
 
 bool ConfigReader::hasValue(const std::string& section, const std::string& key) const {
@@ -358,10 +379,26 @@ void ConfigReader::loadConfig() {
                 std::string value = trim(line.substr(pos + 1));
 
                 if (!current_section.empty()) {
-                    if (sections[current_section].hasKey(key)) {
-                        sections[current_section].getValues().at(key)->fromString(value);
-                    } else {
-                        sections[current_section].setValue(key, value);
+                    try {
+                        setValue(current_section, key, value);
+                    } catch (const std::runtime_error& e) {
+                        std::cerr << "Validation failed for " << current_section << "." << key 
+                                  << ": " << e.what() << ". Using default value." << std::endl;
+                        
+						// Get default value from ConfigGen::ConfigSection
+                        size_t sectionCount;
+                        const ConfigGen::ConfigSection* sections = getConfigSections(sectionCount);
+                        for (size_t i = 0; i < sectionCount; ++i) {
+                            if (sections[i].name == current_section) {
+                                for (size_t j = 0; j < sections[i].itemCount; ++j) {
+                                    if (sections[i].items[j].name == key) {
+                                        setValue(current_section, key, std::string(sections[i].items[j].defaultValue));
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
+                        }
                     }
                 }
             }
