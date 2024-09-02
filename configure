@@ -30,6 +30,11 @@ else
 	bash scripts/configure_gcc.sh
 	echo "Finished Configuring GCC"
 
+	echo "Configuring Boost..."
+	chmod +x scripts/configure_boost.sh
+	bash scripts/configure_boost.sh
+	echo "Finished Configuring Boost"
+	
 	echo "Finished Configuring Development Dependencies..."
 	echo ""
 	echo "1) Now you may execute ./make"

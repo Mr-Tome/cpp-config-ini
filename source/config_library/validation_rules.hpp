@@ -3,31 +3,58 @@
 
 #include <functional>
 #include <string>
-#include "config_reader.hpp"
+#include <vector>
+
+class ConfigValue;
 
 namespace ValidationRules {
 
-using Rule = std::function<bool(const ConfigValue&)>;
+	class Rule {
+	public:
+		virtual ~Rule() {}
+		virtual bool operator()(const ConfigValue& value) const = 0;
+		virtual std::string toString() const = 0;
+	};
+	
+	class GreaterThanZero : public Rule {
+	public:
+		bool operator()(const ConfigValue& value) const override;
+		std::string toString() const override { return "Must be greater than zero"; }
+	};
+	
+	class GreaterThanOrEqualToZero : public Rule {
+	public:
+		bool operator()(const ConfigValue& value) const override;
+		std::string toString() const override { return "Must be greater than or equal to zero"; }
+	};
+	
+	class BetweenValues : public Rule {
+	public:
+		BetweenValues(double min, double max) : min_(min), max_(max) {}
+		bool operator()(const ConfigValue& value) const override;
+		std::string toString() const override;
+	private:
+		double min_;
+		double max_;
+	};
+	
+	class InList : public Rule {
+	public:
+		InList(const std::vector<std::string>& validValues) : validValues_(validValues) {}
+		bool operator()(const ConfigValue& value) const override;
+		std::string toString() const override;
+	private:
+		std::vector<std::string> validValues_;
+	};
+	
+	// Global instances of the "core" supported rules
+	extern const GreaterThanZero greaterThanZero;
+	extern const GreaterThanOrEqualToZero greaterThanOrEqualToZero;
+	
+	// functions for "core" supported rules with parameters
+	BetweenValues betweenValues(double min, double max);
+	InList inList(const std::vector<std::string>& validValues);
 
-// Core validation rules
-Rule greaterThanZero();
-Rule greaterThanOrEqualToZero();
-Rule betweenValues(double min, double max);
-Rule inList(const std::vector<std::string>& validValues);
-
-// Helper function to create custom rules
-template<typename T>
-Rule custom(std::function<bool(const T&)> customCheck);
-
-// Implementation of custom rule
-template<typename T>
-Rule custom(std::function<bool(const T&)> customCheck) {
-    return [customCheck](const ConfigValue& value) {
-        auto typedValue = dynamic_cast<const TypedConfigValue<T>*>(&value);
-        return typedValue && customCheck(typedValue->getValue());
-    };
 }
 
-} // namespace ValidationRules
-
-#endif // VALIDATION_RULES_H
+#endif

@@ -1,20 +1,21 @@
 #ifndef CONFIG_READER_H
 #define CONFIG_READER_H
 
+#include "validation_rules.hpp"
 #include <string>
 #include <unordered_map>
 #include <memory>
 #include <vector>
 #include <functional>
 
-// Config generation at compile-time
+
 namespace ConfigGen {
     struct ConfigItem {
-		const char* name;
+        const char* name;
         const char* type;
         const char* defaultValue;
         const char* description;
-        const char* validationRule;
+        const ValidationRules::Rule* validationRule;
     };
 
     struct ConfigSection {
@@ -23,7 +24,6 @@ namespace ConfigGen {
         size_t itemCount;
     };
 
-    constexpr bool validateConfigStructure();
     bool validateConfig(const ConfigSection* sections, size_t sectionCount);
     std::string generateConfig(const ConfigSection* sections, size_t sectionCount);
 }

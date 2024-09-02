@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <algorithm>
 
+
+
 namespace ConfigGen {
     // This function can be used for compile-time checks if needed
     constexpr bool validateConfigStructure() {
@@ -27,9 +29,11 @@ namespace ConfigGen {
             config_content += "[" + std::string(section.name) + "]\n";
             for (size_t j = 0; j < section.itemCount; ++j) {
                 const ConfigItem& item = section.items[j];
-                config_content += std::string(item.name) + " = " + std::string(item.defaultValue) + " # type: " +std::string(item.name) +", description: " + std::string(item.description);
-                if (item.validationRule[0] != '\0') {
-                    config_content += " (validationRule: " + std::string(item.validationRule) + ")";
+                config_content += std::string(item.name) + " = " + std::string(item.defaultValue)
+							   + " # type: " +std::string(item.name)
+							   + ", description: " + std::string(item.description);
+                if (item.validationRule) {
+                    config_content += " (validationRule: " + item.validationRule->toString() + ")";
                 }
                 config_content += "\n";
             }
@@ -390,7 +394,16 @@ std::string ConfigReader::trim(const std::string& str) {
 
 // Implement the generateConfigFile function here
 void generateConfigFile(const ConfigReader& reader) {
-    size_t sectionCount;
+	std::string filePath = reader.getConfigFilePath();
+	std::ifstream file(filePath);
+	
+    // TODO (IHT): Update to boost::filesystem::exists(filePath)
+    if (file.is_open()) {
+        std::cout << "Configuration file already exists. Skipping generation." << std::endl;
+        return;
+    }
+	
+	size_t sectionCount;
     const ConfigGen::ConfigSection* sections = reader.getConfigSections(sectionCount);
 
 	 // Perform runtime validation
@@ -401,7 +414,7 @@ void generateConfigFile(const ConfigReader& reader) {
     // Generate the configuration content
     std::string configContent = ConfigGen::generateConfig(sections, sectionCount);
 
-    std::ofstream configFile(reader.getConfigFilePath());
+    std::ofstream configFile(filePath);
     if (configFile.is_open()) {
         configFile << configContent;
         configFile.close();
