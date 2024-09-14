@@ -17,7 +17,7 @@ public:
     }
 
     std::vector<ConfigLib::ConfigGen::ConfigSection> getConfigSections() const override 
-	{
+    {
         static const ValidationRules::BetweenValues between0And100(0, 100);
         return {
             {
@@ -53,7 +53,7 @@ int main() {
         std::cout << "Creating SpecificAlgorithmConfig" << std::endl;
         SpecificAlgorithmConfig config;
         config.initialize();
-        
+		
         // Print out the loaded configuration
         std::cout << "Loaded Configuration:" << std::endl;
         for (const auto& section : config.getSections()) {
@@ -75,7 +75,7 @@ int main() {
 		
         // Testing validation logic
         try {
-            config.setValue("General", "FW", 10.0);
+            config.setValue("General", "FW", 20.0);
         } catch (const std::exception& e) {
             std::cerr << "Validation error: " << e.what() << std::endl;
         }
