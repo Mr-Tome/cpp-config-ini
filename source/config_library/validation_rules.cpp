@@ -5,33 +5,33 @@
 
 namespace ValidationRules {
 
-	bool GreaterThanZero::operator()(const ConfigValue& value) const {
-		const TypedConfigValue<double>* doubleValue = dynamic_cast<const TypedConfigValue<double>*>(&value);
-		if (doubleValue) {
-			return doubleValue->getValue() > 0;
-		}
-		const TypedConfigValue<std::string>* stringValue = dynamic_cast<const TypedConfigValue<std::string>*>(&value);
-		if (stringValue) {
-			try {
-				return std::stod(stringValue->getValue()) > 0;
-			} catch (...) {
-				return false;
-			}
-		}
-		return false;
-	}
+	bool GreaterThanZero::operator()(const ConfigLib::ConfigValue& value) const {
+        const ConfigLib::TypedConfigValue<double>* doubleValue = dynamic_cast<const ConfigLib::TypedConfigValue<double>*>(&value);
+        if (doubleValue) {
+            return doubleValue->getValue() > 0;
+        }
+        const ConfigLib::TypedConfigValue<std::string>* stringValue = dynamic_cast<const ConfigLib::TypedConfigValue<std::string>*>(&value);
+        if (stringValue) {
+            try {
+                return std::stod(stringValue->getValue()) > 0;
+            } catch (...) {
+                return false;
+            }
+        }
+        return false;
+    }
 	
-	bool GreaterThanOrEqualToZero::operator()(const ConfigValue& value) const {
-		const TypedConfigValue<double>* doubleValue = dynamic_cast<const TypedConfigValue<double>*>(&value);
+	bool GreaterThanOrEqualToZero::operator()(const ConfigLib::ConfigValue& value) const {
+		const ConfigLib::TypedConfigValue<double>* doubleValue = dynamic_cast<const ConfigLib::TypedConfigValue<double>*>(&value);
 		return doubleValue && doubleValue->getValue() >= 0;
 	}
 	
-	bool BetweenValues::operator()(const ConfigValue& value) const {
-		const TypedConfigValue<double>* doubleValue = dynamic_cast<const TypedConfigValue<double>*>(&value);
+	bool BetweenValues::operator()(const ConfigLib::ConfigValue& value) const {
+		const ConfigLib::TypedConfigValue<double>* doubleValue = dynamic_cast<const ConfigLib::TypedConfigValue<double>*>(&value);
 		if (doubleValue) {
 			return doubleValue->getValue() >= min_ && doubleValue->getValue() <= max_;
 		}
-		const TypedConfigValue<std::string>* stringValue = dynamic_cast<const TypedConfigValue<std::string>*>(&value);
+		const ConfigLib::TypedConfigValue<std::string>* stringValue = dynamic_cast<const ConfigLib::TypedConfigValue<std::string>*>(&value);
 		if (stringValue) {
 			try {
 				double doubleVal = std::stod(stringValue->getValue());
@@ -49,8 +49,8 @@ namespace ValidationRules {
 		return oss.str();
 	}
 	
-	bool InList::operator()(const ConfigValue& value) const {
-		const TypedConfigValue<std::string>* stringValue = dynamic_cast<const TypedConfigValue<std::string>*>(&value);
+	bool InList::operator()(const ConfigLib::ConfigValue& value) const {
+		const ConfigLib::TypedConfigValue<std::string>* stringValue = dynamic_cast<const ConfigLib::TypedConfigValue<std::string>*>(&value);
 		return stringValue && std::find(validValues_.begin(), validValues_.end(), stringValue->getValue()) != validValues_.end();
 	}
 	
@@ -69,12 +69,19 @@ namespace ValidationRules {
 	const GreaterThanOrEqualToZero greaterThanOrEqualToZero;
 	
 	// Factory functions for rules with parameters
-	BetweenValues betweenValues(double min, double max) {
-		return BetweenValues(min, max);
-	}
+	//BetweenValues betweenValues(double min, double max) {
+	//	return BetweenValues(min, max);
+	//}
+	//
+	//InList inList(const std::vector<std::string>& validValues) {
+	//	return InList(validValues);
+	//}
+	Rule* betweenValues(double min, double max) {
+        return new BetweenValues(min, max);
+    }
 	
-	InList inList(const std::vector<std::string>& validValues) {
-		return InList(validValues);
-	}
+    Rule* inList(const std::vector<std::string>& validValues) {
+        return new InList(validValues);
+    }
 
 } 

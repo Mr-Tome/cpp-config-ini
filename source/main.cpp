@@ -4,11 +4,10 @@
 #include <fstream>
 #include <memory>
 
-class SpecificAlgorithmConfig : public ConfigReader {
+class SpecificAlgorithmConfig : public ConfigLib::ConfigReader {
 public:
     SpecificAlgorithmConfig() : ConfigReader() {
         std::cout << "SpecificAlgorithmConfig constructor started" << std::endl;
-		setValidationRules();
         std::cout << "SpecificAlgorithmConfig constructor finished" << std::endl;
     }
 
@@ -17,67 +16,35 @@ public:
         return "specific_algorithm_config.ini";
     }
 
-    const ConfigGen::ConfigSection* getConfigSections(size_t& sectionCount) const override {
-        static const ConfigGen::ConfigItem ABT_ITEMS[] = {
-            {"kor", "double", "500.0", "ABT kor value", &ValidationRules::greaterThanZero},
-            {"koh", "double", "1.0", "ABT koh value", nullptr}
+    std::vector<ConfigLib::ConfigGen::ConfigSection> getConfigSections() const override 
+	{
+        static const ValidationRules::BetweenValues between0And100(0, 100);
+        return {
+            {
+                "ABT",
+                {
+                    {"kor", "double", "500.0", "ABT kor value", &ValidationRules::greaterThanZero},
+                    {"koh", "double", "1.0", "ABT koh value", nullptr}
+                }
+            },
+            {
+                "TBM",
+                {
+                    {"kor", "double", "500.0", "TBM kor value", &ValidationRules::greaterThanZero}
+                }
+            },
+            {
+                "General",
+                {
+                    {"FW", "double", "10.0", "Fixed Wing value", &between0And100},
+                    {"RW", "double", "20.0", "Rotary Wing value", &between0And100},
+                    {"CM", "double", "30.0", "Cruise Missile value", &between0And100},
+                    {"Misc", "vector<double>", "1.0,2.0,3.0", "Misc item just for proof of principle", nullptr}
+                }
+            }
         };
-
-        static const ConfigGen::ConfigItem TBM_ITEMS[] = {
-            {"kor", "double", "500.0", "TBM kor value", &ValidationRules::greaterThanZero}
-        };
-
-        static const ValidationRules::BetweenValues EXAMPLE_RULE = ValidationRules::betweenValues(0, 100);
-        static const ConfigGen::ConfigItem GENERAL_ITEMS[] = {
-            {"FW", "double", "10.0", "Fixed Wing value", &EXAMPLE_RULE},
-            {"RW", "double", "20.0", "Rotary Wing value", &EXAMPLE_RULE},
-            {"CM", "double", "30.0", "Cruise Missile value", &EXAMPLE_RULE},
-            {"Misc", "vector<double>", "1.0,2.0,3.0", "Misc item just for proof of principle", nullptr}
-        };
-
-        static const ConfigGen::ConfigSection SECTIONS[] = {
-            {"ABT", ABT_ITEMS, sizeof(ABT_ITEMS) / sizeof(ABT_ITEMS[0])},
-            {"TBM", TBM_ITEMS, sizeof(TBM_ITEMS) / sizeof(TBM_ITEMS[0])},
-            {"General", GENERAL_ITEMS, sizeof(GENERAL_ITEMS) / sizeof(GENERAL_ITEMS[0])}
-        };
-
-        sectionCount = sizeof(SECTIONS) / sizeof(SECTIONS[0]);
-        return SECTIONS;
     }
-
-protected:
-    void setDefaultValues() override {
-		// This method can stay empty if you want the validation rules to be explicit, i.e.,
-		// presented in the generated .ini
-		// implement getConfigSections for explicit rules
-		
-        // if you want implicit validation rules, you can se them here like this:
-		// 
-        //setValidationRule("ABT", "kor", ValidationRules::greaterThanZero());
-        //setValidationRule("TBM", "kor", ValidationRules::greaterThanZero());
-        //setValidationRule("General", "FW", ValidationRules::betweenValues(0, 100));
-        //setValidationRule("General", "RW", ValidationRules::betweenValues(0, 100));
-        //setValidationRule("General", "CM", ValidationRules::betweenValues(0, 100));
-		//
-        //// Custom validation rule example
-        //setValidationRule("General", "Misc", ValidationRules::custom<std::vector<double>>([](const std::vector<double>& vec) {
-        //    return vec.size() == 3 && vec[0] < vec[1] && vec[1] < vec[2];
-        //}));
-    }
-private:
-	void setValidationRules() {
-        setValidationRule("ABT", "kor", ValidationRules::greaterThanZero);
-        setValidationRule("TBM", "kor", ValidationRules::greaterThanZero);
-        setValidationRule("General", "FW", ValidationRules::betweenValues(0, 100));
-        setValidationRule("General", "RW", ValidationRules::betweenValues(0, 100));
-        setValidationRule("General", "CM", ValidationRules::betweenValues(0, 100));
-    }
-
 };
-
-// This will force generation of the config file at run time
-//static const bool configGenerated = (generateConfigFile(SpecificAlgorithmConfig()), true);
-
  
 int main() {
     std::cout << "Program started" << std::endl;
@@ -97,6 +64,15 @@ int main() {
             std::cout << std::endl;
         }
         
+		 // Use the config object like this
+        try {
+            std::cout << "1ABT.kor: " << config.getValue<double>("ABT", "kor") << std::endl;
+            std::cout << "1TBM.kor: " << config.getValue<double>("TBM", "kor") << std::endl;
+            std::cout << "1General.FW: " << config.getValue<double>("General", "FW") << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "Error retrieving value: " << e.what() << std::endl;
+        }
+		
         // Testing validation logic
         try {
             config.setValue("General", "FW", 10.0);
@@ -106,9 +82,9 @@ int main() {
 
         // Use the config object like this
         try {
-            std::cout << "ABT.kor: " << config.getValue<double>("ABT", "kor") << std::endl;
-            std::cout << "TBM.kor: " << config.getValue<double>("TBM", "kor") << std::endl;
-            std::cout << "General.FW: " << config.getValue<double>("General", "FW") << std::endl;
+            std::cout << "2ABT.kor: " << config.getValue<double>("ABT", "kor") << std::endl;
+            std::cout << "2TBM.kor: " << config.getValue<double>("TBM", "kor") << std::endl;
+            std::cout << "2General.FW: " << config.getValue<double>("General", "FW") << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "Error retrieving value: " << e.what() << std::endl;
         }
