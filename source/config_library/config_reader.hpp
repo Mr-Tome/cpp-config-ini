@@ -51,28 +51,22 @@ namespace ConfigLib {
 
     using ValidationRule = std::function<bool(const ConfigValue&)>;
 	
-	class ConfigSection {
-	public:
-		template<typename T>
-		void setValue(const std::string& key, const T& value);
-	
-		template<typename T>
-		T getValue(const std::string& key) const;
-	
-		bool hasKey(const std::string& key) const;
-		void setValidationRule(const std::string& key, const ValidationRules::Rule* rule);
-		const std::unordered_map<std::string, std::shared_ptr<ConfigValue>>& getValues() const;
-	
-	private:
-		std::unordered_map<std::string, std::shared_ptr<ConfigValue>> values;
-        std::unordered_map<std::string, const ValidationRules::Rule*> validationRules;
-		
-		// Helper methods for setValue
-		std::shared_ptr<ConfigValue> setValueImpl(const std::string& key, const std::string& value, std::true_type);
-		
-		template<typename T>
-		std::shared_ptr<ConfigValue> setValueImpl(const std::string& key, const T& value, std::false_type);
-	};
+class ConfigSection {
+public:
+    template<typename T>
+    void setValue(const std::string& key, const T& value);
+
+    template<typename T>
+    T getValue(const std::string& key) const;
+
+    bool hasKey(const std::string& key) const;
+    void setValidationRule(const std::string& key, const ValidationRules::Rule* rule);
+    const std::unordered_map<std::string, std::shared_ptr<ConfigValue>>& getValues() const;
+
+private:
+    std::unordered_map<std::string, std::shared_ptr<ConfigValue>> values;
+    std::unordered_map<std::string, const ValidationRules::Rule*> validationRules;
+};
 	
 	class ConfigReader {
 	public:

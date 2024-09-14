@@ -234,20 +234,12 @@ namespace ConfigLib {
 		auto it = values.find(key);
 		if (it != values.end()) {
 			std::cout << "Key found in ConfigSection" << std::endl;
-			auto string_value = std::dynamic_pointer_cast<TypedConfigValue<std::string>>(it->second);
-			if (string_value) {
-				std::cout << "Successfully cast to TypedConfigValue<std::string>" << std::endl;
-				std::string str_value = string_value->getValue();
-				T result;
-				std::istringstream iss(str_value);
-				if (iss >> result) {
-					std::cout << "Successfully converted string to desired type" << std::endl;
-					return result;
-				} else {
-					std::cout << "Failed to convert string to desired type" << std::endl;
-				}
+			auto typed_value = std::dynamic_pointer_cast<TypedConfigValue<T>>(it->second);
+			if (typed_value) {
+				std::cout << "Successfully cast to TypedConfigValue<" << typeid(T).name() << ">" << std::endl;
+				return typed_value->getValue();
 			} else {
-				std::cout << "Failed to cast to TypedConfigValue<std::string>" << std::endl;
+				std::cout << "Failed to cast to TypedConfigValue<" << typeid(T).name() << ">" << std::endl;
 			}
 		} else {
 			std::cout << "Key not found in ConfigSection" << std::endl;
