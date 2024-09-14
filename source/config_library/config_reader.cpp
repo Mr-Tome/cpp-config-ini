@@ -209,25 +209,6 @@ namespace ConfigLib {
 		}
 	}
 	
-	std::shared_ptr<ConfigValue> ConfigSection::setValueImpl(const std::string& key, const std::string& value, std::true_type) {
-		std::shared_ptr<ConfigValue> newValue;
-		if (values.find(key) != values.end()) {
-			values[key]->fromString(value);
-			newValue = values[key];
-		} else {
-			newValue = std::make_shared<TypedConfigValue<std::string>>(value);
-			values[key] = newValue;
-		}
-		return newValue;
-	}
-	
-	template<typename T>
-	std::shared_ptr<ConfigValue> ConfigSection::setValueImpl(const std::string& key, const T& value, std::false_type) {
-		auto newValue = std::make_shared<TypedConfigValue<T>>(value);
-		values[key] = newValue;
-		return newValue;
-	}
-	
 	template<typename T>
 	T ConfigSection::getValue(const std::string& key) const {
 		std::cout << "ConfigSection::getValue called for key: " << key << std::endl;
