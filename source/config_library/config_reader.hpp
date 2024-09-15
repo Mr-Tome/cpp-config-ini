@@ -49,7 +49,7 @@ namespace ConfigLib {
        T value;
    };
 
-   using ValidationRule = std::function<bool(const ConfigValue&)>;
+   //using ValidationRule = std::function<bool(const ConfigValue&)>;
 
 class ConfigSection {
 public:

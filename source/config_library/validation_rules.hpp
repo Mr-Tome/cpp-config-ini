@@ -53,8 +53,6 @@ namespace ValidationRules {
 	extern const GreaterThanOrEqualToZero greaterThanOrEqualToZero;
 	
 	// functions for "core" supported rules with parameters
-	//BetweenValues betweenValues(double min, double max);
-	//InList inList(const std::vector<std::string>& validValues);
 	Rule* betweenValues(double min, double max);
     Rule* inList(const std::vector<std::string>& validValues);
 

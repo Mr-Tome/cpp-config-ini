@@ -566,7 +566,6 @@ void ConfigReader::loadConfig() {
 		return str.substr(strBegin, strRange);
 	}
 	
-	// Implement the generateConfigFile function here
 	void generateConfigFile(const ConfigReader& reader) {
 		std::string filePath = reader.getConfigFilePath();
 		std::ifstream file(filePath);
@@ -595,6 +594,7 @@ void ConfigReader::loadConfig() {
 			throw std::runtime_error("Unable to open file for writing: " + filePath);
 		}
 	}
+	
 	// Compile-time check
 	static_assert(ConfigGen::validateConfigStructure(), "Invalid configuration structure detected at compile-time");
 	

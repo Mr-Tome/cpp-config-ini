@@ -69,13 +69,6 @@ namespace ValidationRules {
 	const GreaterThanOrEqualToZero greaterThanOrEqualToZero;
 	
 	// Factory functions for rules with parameters
-	//BetweenValues betweenValues(double min, double max) {
-	//	return BetweenValues(min, max);
-	//}
-	//
-	//InList inList(const std::vector<std::string>& validValues) {
-	//	return InList(validValues);
-	//}
 	Rule* betweenValues(double min, double max) {
         return new BetweenValues(min, max);
     }
