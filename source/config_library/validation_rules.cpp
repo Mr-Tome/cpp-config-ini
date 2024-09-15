@@ -6,12 +6,13 @@
 namespace ValidationRules {
 
 	bool GreaterThanZero::operator()(const ConfigLib::ConfigValue& value) const {
-        const ConfigLib::TypedConfigValue<double>* doubleValue = dynamic_cast<const ConfigLib::TypedConfigValue<double>*>(&value);
-        if (doubleValue) {
+		if (const auto* intValue = dynamic_cast<const ConfigLib::TypedConfigValue<int>*>(&value)) {
+            return intValue->getValue() > 0;
+        }
+        if (const auto* doubleValue = dynamic_cast<const ConfigLib::TypedConfigValue<double>*>(&value)) {
             return doubleValue->getValue() > 0;
         }
-        const ConfigLib::TypedConfigValue<std::string>* stringValue = dynamic_cast<const ConfigLib::TypedConfigValue<std::string>*>(&value);
-        if (stringValue) {
+        if (const auto* stringValue = dynamic_cast<const ConfigLib::TypedConfigValue<std::string>*>(&value)) {
             try {
                 return std::stod(stringValue->getValue()) > 0;
             } catch (...) {
@@ -22,17 +23,30 @@ namespace ValidationRules {
     }
 	
 	bool GreaterThanOrEqualToZero::operator()(const ConfigLib::ConfigValue& value) const {
-		const ConfigLib::TypedConfigValue<double>* doubleValue = dynamic_cast<const ConfigLib::TypedConfigValue<double>*>(&value);
-		return doubleValue && doubleValue->getValue() >= 0;
+		if (const auto* intValue = dynamic_cast<const ConfigLib::TypedConfigValue<int>*>(&value)) {
+            return intValue->getValue() >= 0;
+        }
+        if (const auto* doubleValue = dynamic_cast<const ConfigLib::TypedConfigValue<double>*>(&value)) {
+            return doubleValue->getValue() >= 0;
+        }
+        if (const auto* stringValue = dynamic_cast<const ConfigLib::TypedConfigValue<std::string>*>(&value)) {
+            try {
+                return std::stod(stringValue->getValue()) >= 0;
+            } catch (...) {
+                return false;
+            }
+        }
+        return false;
 	}
 	
 	bool BetweenValues::operator()(const ConfigLib::ConfigValue& value) const {
-		const ConfigLib::TypedConfigValue<double>* doubleValue = dynamic_cast<const ConfigLib::TypedConfigValue<double>*>(&value);
-		if (doubleValue) {
+		if (const auto* intValue = dynamic_cast<const ConfigLib::TypedConfigValue<int>*>(&value)) {
+			return intValue->getValue() >= min_ && intValue->getValue() <= max_;
+		}
+		if (const auto* doubleValue = dynamic_cast<const ConfigLib::TypedConfigValue<double>*>(&value)) {
 			return doubleValue->getValue() >= min_ && doubleValue->getValue() <= max_;
 		}
-		const ConfigLib::TypedConfigValue<std::string>* stringValue = dynamic_cast<const ConfigLib::TypedConfigValue<std::string>*>(&value);
-		if (stringValue) {
+		if (const auto* stringValue = dynamic_cast<const ConfigLib::TypedConfigValue<std::string>*>(&value)) {
 			try {
 				double doubleVal = std::stod(stringValue->getValue());
 				return doubleVal >= min_ && doubleVal <= max_;
