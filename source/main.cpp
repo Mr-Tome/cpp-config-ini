@@ -8,6 +8,7 @@ class SpecificAlgorithmConfig : public ConfigLib::ConfigReader {
 public:
     SpecificAlgorithmConfig() : ConfigReader() {
         std::cout << "SpecificAlgorithmConfig constructor started" << std::endl;
+		initialize();
         std::cout << "SpecificAlgorithmConfig constructor finished" << std::endl;
     }
 
@@ -52,7 +53,7 @@ int main() {
     try {
         std::cout << "Creating SpecificAlgorithmConfig" << std::endl;
         SpecificAlgorithmConfig config;
-        config.initialize();
+        //config.initialize();
 		
         // Print out the loaded configuration
         std::cout << "Loaded Configuration:" << std::endl;
