@@ -6,9 +6,10 @@ A visual summary of this guide:
 ```mermaid
 flowchart
 	A[Start]
-	A-->Gitbash["1. Download Gitbash"]
-	Gitbash-->clone["2. git clone %project_url%"]-->configure["3. ./configure"]-->make["4. ./make"] --> run["5. ./run"]
+	A-->Gitbash[Download Gitbash]
+	Gitbash-->clone["git clone https ://github.com/Mr-Tome/cpp-config-ini.git"]-->configure["./configure"]-->make["./make"] --> run["./run"]
 subgraph "%USERPROFILE%/cpp-template"
+  
 	CMake
 	GCC
 end
