@@ -1,103 +1,106 @@
 #include "config_library/config_reader.hpp"
 #include "config_library/validation_rules.hpp"
 #include <iostream>
-#include <vector>
-#include <random>
-#include <cmath>
-#include <numeric>
+#include <fstream>
+#include <memory>
 
-class MonteCarloConfig : public ConfigLib::ConfigReader {
+class SpecificAlgorithmConfig : public ConfigLib::ConfigReader {
 public:
-    MonteCarloConfig() : ConfigReader() {
-        std::cout << "MonteCarloConfig constructor started" << std::endl;
-        initialize();
-        std::cout << "MonteCarloConfig constructor finished" << std::endl;
+    SpecificAlgorithmConfig() : ConfigReader() {
+        std::cout << "SpecificAlgorithmConfig constructor started" << std::endl;
+		initialize();
+        std::cout << "SpecificAlgorithmConfig constructor finished" << std::endl;
     }
 
     std::string getConfigFilePath() const override {
-        return "monte_carlo_config.ini";
+        std::cout << "Getting config file path" << std::endl;
+        return "specific_algorithm_config.ini";
     }
 
     std::vector<ConfigLib::ConfigGen::ConfigSection> getConfigSections() const override 
     {
+        static const ValidationRules::BetweenValues between0And100(0, 100);
         return {
             {
-                "Simulation",
+                "ABT",
                 {
-                    {"num_simulations", "int", "10000", "Number of Monte Carlo simulations", &ValidationRules::greaterThanZero},
-                    {"initial_price", "double", "100.0", "Initial asset price", &ValidationRules::greaterThanZero},
-                    {"time_horizon", "double", "1.0", "Time horizon in years", &ValidationRules::greaterThanZero},
-                    {"num_steps", "int", "252", "Number of time steps", &ValidationRules::greaterThanZero},
-                    {"risk_free_rate", "double", "0.05", "Risk-free interest rate", &ValidationRules::greaterThanOrEqualToZero},
-                    {"volatility", "double", "0.2", "Asset price volatility", &ValidationRules::greaterThanZero}
+                    {"kor", "double", "500.0", "ABT kor value", &ValidationRules::greaterThanZero},
+                    {"koh", "integer", "1", "ABT koh value", nullptr}
+                }
+            },
+            {
+                "TBM",
+                {
+                    {"kor", "double", "500.0", "TBM kor value", &ValidationRules::greaterThanZero}
+                }
+            },
+            {
+                "General",
+                {
+                    {"FW", "double", "10.0", "Fixed Wing value", &between0And100},
+                    {"RW", "double", "20.0", "Rotary Wing value", &between0And100},
+                    {"CM", "double", "30.0", "Cruise Missile value", &between0And100},
+                    {"Misc", "vector<double>", "1.0,2.0,3.0", "Misc item just for proof of principle", nullptr}
                 }
             }
         };
     }
 };
-
-class MonteCarloSimulation {
-public:
-    MonteCarloSimulation() : config(), rng(std::random_device{}()) {}
-
-    double runSimulation() const {
-        int num_simulations = config.getValue<int>("Simulation", "num_simulations");
-		std::cout << "num_simulations: " << std::to_string(num_simulations) << std::endl; 
-        double initial_price = config.getValue<double>("Simulation", "initial_price");
-        double time_horizon = config.getValue<double>("Simulation", "time_horizon");
-        int num_steps = config.getValue<int>("Simulation", "num_steps");
-        double risk_free_rate = config.getValue<double>("Simulation", "risk_free_rate");
-        double volatility = config.getValue<double>("Simulation", "volatility");
-
-        double dt = time_horizon / num_steps;
-        double drift = (risk_free_rate - 0.5 * volatility * volatility) * dt;
-        double diffusion = volatility * std::sqrt(dt);
-
-        std::vector<double> final_prices;
-        final_prices.reserve(num_simulations);
-
-        std::normal_distribution<> normal(0, 1);
-
-        for (int i = 0; i < num_simulations; ++i) {
-            double price = initial_price;
-            for (int step = 0; step < num_steps; ++step) {
-                double z = normal(rng);
-                price *= std::exp(drift + diffusion * z);
-            }
-            final_prices.push_back(price);
-        }
-
-        double sum = std::accumulate(final_prices.begin(), final_prices.end(), 0.0);
-        double mean = sum / num_simulations;
-
-        double sq_sum = std::inner_product(final_prices.begin(), final_prices.end(), final_prices.begin(), 0.0);
-        double stdev = std::sqrt(sq_sum / num_simulations - mean * mean);
-
-        std::cout << "Mean final price: " << mean << std::endl;
-        std::cout << "Standard deviation: " << stdev << std::endl;
-
-        return mean;
-    }
-
-private:
-    MonteCarloConfig config;
-    mutable std::mt19937 rng;
-};
-
+ 
 int main() {
-    std::cout << "Monte Carlo Simulation started" << std::endl;
+    std::cout << "Program started" << std::endl;
     
     try {
-        MonteCarloSimulation simulation;
+        std::cout << "Creating SpecificAlgorithmConfig" << std::endl;
+        SpecificAlgorithmConfig config;
+        //config.initialize();
 		
-        double result = simulation.runSimulation();
+        // Print out the loaded configuration
+        std::cout << "Loaded Configuration:" << std::endl;
+        for (const auto& section : config.getSections()) {
+            std::cout << "[" << section.first << "]" << std::endl;
+            for (const auto& item : section.second.getValues()) {
+                std::cout << item.first << " = " << item.second->toString() << std::endl;
+            }
+            std::cout << std::endl;
+        }
+        
+		 // Use the config object like this
+        try {
+            std::cout << "1ABT.kor: " << config.getValue<double>("ABT", "kor") << std::endl;
+			std::cout << "1ABT.koh: " << config.getValue<int>("ABT", "koh") << std::endl;
+            //std::cout << "1TBM.kor: " << config.getValue<double>("TBM", "kor") << std::endl;
+            //std::cout << "1General.FW: " << config.getValue<double>("General", "FW") << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "Error retrieving value: " << e.what() << std::endl;
+        }
+		
+		// Use the config object like this
+		double kor_new = config.getValue<double>("ABT", "kor") * 3.0;
+		std::cout << "kor_new: " << std::to_string(kor_new) << std::endl;
+		
+        // Testing validation logic
+        try {
+            config.setValue("General", "FW", 20.0);
+        } catch (const std::exception& e) {
+            std::cerr << "Validation error: " << e.what() << std::endl;
+        }
 
-        std::cout << "Simulation completed. Final result: " << result << std::endl;
-
+        // Use the config object like this
+        try {
+            std::cout << "2ABT.kor: " << config.getValue<double>("ABT", "kor") << std::endl;
+            std::cout << "2TBM.kor: " << config.getValue<double>("TBM", "kor") << std::endl;
+            std::cout << "2General.FW: " << config.getValue<double>("General", "FW") << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "Error retrieving value: " << e.what() << std::endl;
+        }
+        
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     }
 
     std::cout << "Program finished" << std::endl;
+    std::cout.flush();  // Ensure all output is flushed
+    
     return 0;
 }
