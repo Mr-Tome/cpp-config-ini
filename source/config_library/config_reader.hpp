@@ -49,7 +49,7 @@ namespace ConfigLib {
 				if (std::is_same<T, double>::value) return "double";
 				if (std::is_same<T, std::string>::value) return "string";
 				if (std::is_same<T, std::vector<double>>::value) return "vector<double>";
-				return "unknown type";
+				return "unknown/unhandled type";
 			}
 			
 			std::string getDefaultValueString() const override {
@@ -59,6 +59,7 @@ namespace ConfigLib {
 			}
 		};
 		
+		//TODO (IHT): put in cpp
 		// Specialization for std::vector<double>
 		template<>
 		inline std::string ConfigItem<std::vector<double>>::getDefaultValueString() const {
@@ -74,11 +75,13 @@ namespace ConfigLib {
             std::string name;
 			std::vector<std::unique_ptr<ConfigItemBase>> items;
 			
+			//TODO (IHT): put in cpp
 			template<typename... Args>
 			ConfigSection(std::string n, Args&&... args) : name(std::move(n)) {
 				(addItem(std::forward<Args>(args)), ...);
 			}
 		private:
+			//TODO (IHT): put in cpp
 			template<typename T, typename... NextItem>
 			void addItem(const std::string& name, T&& defaultValue, const std::string& description, const ValidationRules::Rule* rule, NextItem&&... nextItem) {
 				items.push_back(std::make_unique<ConfigItem<std::decay_t<T>>>(name, std::forward<T>(defaultValue), description, rule));
@@ -86,7 +89,7 @@ namespace ConfigLib {
 					addItem(std::forward<NextItem>(nextItem)...);
 				}
 			}
-		
+			//TODO (IHT): put in cpp
 			template<typename T, typename... NextItem>
 			void addItem(const std::string& name, T&& defaultValue, const std::string& description, NextItem&&... nextItem) {
 				items.push_back(std::make_unique<ConfigItem<std::decay_t<T>>>(name, std::forward<T>(defaultValue), description, nullptr));
