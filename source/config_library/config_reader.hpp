@@ -7,6 +7,9 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <sstream> //TODO (IHT): remove when declarations are moved to cpp
+#include <type_traits> 
+
 
 namespace ConfigLib {
    namespace ConfigGen {
