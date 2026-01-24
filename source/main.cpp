@@ -24,8 +24,8 @@ public:
             {
                 "ABT",
                 {
-                    {"kor", "double", "500.0", "ABT kor value", &ValidationRules::greaterThanZero},
-                    {"koh", "integer", "1", "ABT koh value", nullptr}
+                    {"kor", "double", "-10.0", "ABT kor value", &ValidationRules::greaterThanZero},
+                    {"koh", "int", "1", "ABT koh value", nullptr}
                 }
             },
             {
@@ -37,10 +37,12 @@ public:
             {
                 "General",
                 {
-                    {"FW", "double", "10.0", "Fixed Wing value", &between0And100},
+                    {"FW", "double", "-999.0", "Fixed Wing value", &between0And100},
                     {"RW", "double", "20.0", "Rotary Wing value", &between0And100},
-                    {"CM", "double", "30.0", "Cruise Missile value", &between0And100},
-                    {"Misc", "vector<double>", "1.0,2.0,3.0", "Misc item just for proof of principle", nullptr}
+                    {"CM", "double", "1010.0", "Cruise Missile value", &between0And100},
+                    {"Misc", "std::vector<double>", "1.0,2.0,3.0", "Misc item just for proof of principle", nullptr},
+                    {"string_test","string","ALL","string test",nullptr},
+                    {"std_string_test","std::string","wew","std::string test",nullptr}
                 }
             }
         };
@@ -81,19 +83,37 @@ int main() {
 		
         // Testing validation logic
         try {
-            config.setValue("General", "FW", 20.0);
+            config.setValue("General", "FW", 200.0);
         } catch (const std::exception& e) {
             std::cerr << "Validation error: " << e.what() << std::endl;
         }
 
         // Use the config object like this
         try {
+			
+            std::cout << "2ABT.kor: " << config.getValue<double>("ABT", "kor") << std::endl;
+			
             std::cout << "2ABT.kor: " << config.getValue<double>("ABT", "kor") << std::endl;
             std::cout << "2TBM.kor: " << config.getValue<double>("TBM", "kor") << std::endl;
             std::cout << "2General.FW: " << config.getValue<double>("General", "FW") << std::endl;
+            
+            std::cout << "2General.FW: " << config.getValue<std::string>("General", "string_test") << std::endl;
+            std::cout << "2General.FW: " << config.getValue<std::string>("General", "std_string_test") << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "Error retrieving value: " << e.what() << std::endl;
         }
+        
+        auto misc_vec = config.getValue<std::vector<double>>("General","Misc");
+        std::string string_misc;
+        for(const auto& it:misc_vec)
+        {
+			if(!string_misc.empty())
+			{
+				string_misc+=", ";
+			}
+			string_misc += std::to_string(it);
+		}
+		std::cout << "Misc values: " << string_misc << std::endl;
         
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
