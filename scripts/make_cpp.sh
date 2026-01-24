@@ -24,7 +24,8 @@ if [ -d "$destination_dep" ]; then
 
 	# Build the project using make
 	echo "Building the project using Ninja..."
-	"$CMAKE" -B"build" -G Ninja
+#	"$CMAKE" -B"build" -G Ninja
+cmake  -B"build" -G Ninja
 	echo "Finished building the project."
 	cd build
 	ninja
