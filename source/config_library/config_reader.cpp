@@ -165,7 +165,7 @@ namespace ConfigLib {
 			if (rule_it != validationRules.end() && rule_it->second) {
 				if (!(*rule_it->second)(*newValue)) {
 					std::cerr << "Validation failed for key: " << key << ". Using default value." << std::endl;
-					return;
+					throw std::runtime_error("Validation failed for key: " + key);
 				}
 			}
 			
