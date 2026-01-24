@@ -354,7 +354,7 @@ void ConfigReader::loadConfig() {
 							}
 						} 
 						else if (std::string(item.type) == "int" ||
-							std::string(item.type) == "int") 
+							std::string(item.type) == "integer") 
 						{
 							int intValue = std::stoi(value);
 							if (!item.validationRule || (*item.validationRule)(TypedConfigValue<int>(intValue))) {
