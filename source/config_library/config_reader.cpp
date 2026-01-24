@@ -251,7 +251,8 @@ namespace ConfigLib {
 		}
 		throw std::runtime_error("Key not found or type mismatch: " + key);
 	}
-	
+
+/*
 	// Specialization for std::string to avoid unnecessary conversion
 	template<>
 	std::string ConfigSection::getValue<std::string>(const std::string& key) const {
@@ -272,19 +273,11 @@ namespace ConfigLib {
 		std::cout << "ConfigSection::getValue<std::vector<double>> called for key: " << key << std::endl;
 		auto it = values.find(key);
 		if (it != values.end()) {
-			auto string_value = std::dynamic_pointer_cast<TypedConfigValue<std::string>>(it->second);
-			if (string_value) {
-				std::vector<double> result;
-				std::istringstream iss(string_value->getValue());
-				std::string token;
-				while (std::getline(iss, token, ',')) {
-					result.push_back(std::stod(token));
-				}
-				return result;
-			}
+			auto vec_value = std::dynamic_pointer_cast<TypedConfigValue<std::vector<double>>>(it->second);
+			if(vec_value)
 		}
 		throw std::runtime_error("Key not found or invalid format: " + key);
-	}
+	}*/
 	
 	bool ConfigSection::hasKey(const std::string& key) const {
 		return values.find(key) != values.end();
