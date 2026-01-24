@@ -172,64 +172,11 @@ namespace ConfigLib {
 			values[key] = newValue;
 			std::cout << "Value set for key: " << key << std::endl;
 		} catch (const std::exception& e) {
-			std::cerr << "Exception in ConfigSection::setValue: " << e.what() << std::endl;
-			throw;
+			auto error_string = std::string("Exception in ConfigSection::setValue: ") + e.what();
+			throw std::runtime_error(error_string);
 		} catch (...) {
-			std::cerr << "Unknown exception in ConfigSection::setValue" << std::endl;
-			throw;
-		}
-	}
-	
-	void ConfigSection::setValue(const std::string& key, const std::string& value) {
-		std::cout << "ConfigSection::setValue called for key: " << key << " with type: string" << std::endl;
-		try {
-			if (values.find(key) != values.end()) {
-				values[key]->fromString(value);
-			} else {
-				auto newValue = std::make_shared<TypedConfigValue<std::string>>(value);
-				values[key] = newValue;
-			}
-			
-			// Apply validation rule if it exists
-			auto rule_it = validationRules.find(key);
-			if (rule_it != validationRules.end() && rule_it->second) {
-				if (!(*rule_it->second)(*values[key])) {
-					throw std::runtime_error("Validation failed for key: " + key);
-				}
-			}
-			
-			std::cout << "Value set for key: " << key << std::endl;
-		} catch (const std::exception& e) {
-			std::cerr << "Exception in ConfigSection::setValue: " << e.what() << std::endl;
-			throw;
-		} catch (...) {
-			std::cerr << "Unknown exception in ConfigSection::setValue" << std::endl;
-			throw;
-		}
-	}
-	
-	// Specialization for vector<double>
-	void ConfigSection::setValue(const std::string& key, const std::vector<double>& value) {
-		std::cout << "ConfigSection::setValue called for key: " << key << " with type: vector<double>" << std::endl;
-		try {
-			auto newValue = std::make_shared<TypedConfigValue<std::vector<double>>>(value);
-			
-			// Apply validation rule if it exists
-			auto rule_it = validationRules.find(key);
-			if (rule_it != validationRules.end() && rule_it->second) {
-				if (!(*rule_it->second)(*newValue)) {
-					throw std::runtime_error("Validation failed for key: " + key);
-				}
-			}
-			
-			values[key] = newValue;
-			std::cout << "Value set for key: " << key << std::endl;
-		} catch (const std::exception& e) {
-			std::cerr << "Exception in ConfigSection::setValue: " << e.what() << std::endl;
-			throw;
-		} catch (...) {
-			std::cerr << "Unknown exception in ConfigSection::setValue" << std::endl;
-			throw;
+			auto error_string = std::string("Unknown exception in ConfigSection::setValue");
+			throw std::runtime_error(error_string);
 		}
 	}
 	
@@ -251,33 +198,6 @@ namespace ConfigLib {
 		}
 		throw std::runtime_error("Key not found or type mismatch: " + key);
 	}
-
-/*
-	// Specialization for std::string to avoid unnecessary conversion
-	template<>
-	std::string ConfigSection::getValue<std::string>(const std::string& key) const {
-		std::cout << "ConfigSection::getValue<std::string> called for key: " << key << std::endl;
-		auto it = values.find(key);
-		if (it != values.end()) {
-			auto string_value = std::dynamic_pointer_cast<TypedConfigValue<std::string>>(it->second);
-			if (string_value) {
-				return string_value->getValue();
-			}
-		}
-		throw std::runtime_error("Key not found: " + key);
-	}
-	
-	// Specialization for std::vector<double>
-	template<>
-	std::vector<double> ConfigSection::getValue<std::vector<double>>(const std::string& key) const {
-		std::cout << "ConfigSection::getValue<std::vector<double>> called for key: " << key << std::endl;
-		auto it = values.find(key);
-		if (it != values.end()) {
-			auto vec_value = std::dynamic_pointer_cast<TypedConfigValue<std::vector<double>>>(it->second);
-			if(vec_value)
-		}
-		throw std::runtime_error("Key not found or invalid format: " + key);
-	}*/
 	
 	bool ConfigSection::hasKey(const std::string& key) const {
 		return values.find(key) != values.end();
@@ -304,6 +224,11 @@ namespace ConfigLib {
 			filepath = getConfigFilePath();
 			std::cout << "Config file path: " << filepath << std::endl;
 	
+			auto configSections = getConfigSections();
+			for (const auto& section : configSections) {
+				sections[section.name];  // Creates empty section
+			}
+	
 			// Check if the file exists, if not, generate it
 			std::ifstream file(filepath);
 			if (!file.is_open()) {
@@ -320,11 +245,11 @@ namespace ConfigLib {
 			setValidationRules();
 			std::cout << "Validation rules set" << std::endl;
 		} catch (const std::exception& e) {
-			std::cerr << "Exception in ConfigReader::initialize: " << e.what() << std::endl;
-			throw;
+			auto error_string = std::string("Exception in ConfigReader::initialize: ") + e.what();
+			throw std::runtime_error(error_string);
 		} catch (...) {
-			std::cerr << "Unknown exception in ConfigReader::initialize" << std::endl;
-			throw;
+			auto error_string = std::string("Unknown exception in ConfigReader::initialize");
+			throw std::runtime_error(error_string);
 		}
 		std::cout << "ConfigReader::initialize finished" << std::endl;
 	}
@@ -344,26 +269,12 @@ namespace ConfigLib {
 	
 	template<typename T>
 	void ConfigReader::setValue(const std::string& section, const std::string& key, const T& value) {
-		sections[section].setValue(key, value);
-	}
-	
-	void ConfigReader::setValue(const std::string& section, const std::string& key, const std::string& value) {
-		sections[section].setValue(key, value);
-	}
-	
-	void ConfigReader::setValue(const std::string& section, const std::string& key, const std::vector<double>& value) {
-		sections[section].setValue(key, value);
-	}
-	
-	template<>
-	void ConfigReader::setValue<std::string>(const std::string& section, const std::string& key, const std::string& value) {
-		auto& sectionObj = sections[section];
-		auto it = sectionObj.getValues().find(key);
-		if (it != sectionObj.getValues().end()) {
-			it->second->fromString(value);
-		} else {
-			sectionObj.setValue(key, value);
+		auto sect_it = sections.find(section);
+		if (sect_it == sections.end()) {
+			throw std::runtime_error("Attempting to set a Section that was not found in the schema: " + section);
 		}
+		
+		sect_it->second.setValue(key, value);
 	}
 	
 	bool ConfigReader::hasValue(const std::string& section, const std::string& key) const {
@@ -407,96 +318,107 @@ void ConfigReader::loadConfig() {
 			current_section = line.substr(1, line.size() - 2);
 		} else {
             auto pos = line.find('=');
-			if (pos != std::string::npos) {
-				std::string key = trim(line.substr(0, pos));
-				std::string value = line.substr(pos + 1);
+            
+            if(pos == std::string::npos) continue;
+            
+			std::string key = trim(line.substr(0, pos));
+			std::string value = line.substr(pos + 1);
+			
+			// remove the comments from the value
+			size_t commentPos = value.find('#'); //TODO: if a user puts a # in a std::string uh oh...
+			if (commentPos != std::string::npos) {
+				value = value.substr(0, commentPos);
+			}
+			value = trim(value);
+			
+			if(current_section.empty()) continue;
+			
+			auto configSections = getConfigSections();
+			for (const auto& section : configSections) 
+			{
+				if(section.name != current_section) continue;
 				
-				// Remove comments from the value
-				size_t commentPos = value.find('#');
-				if (commentPos != std::string::npos) {
-					value = value.substr(0, commentPos);
+				for (const auto& item : section.items) 
+				{
+					if (item.name != key) continue;
+					try {
+						if (std::string(item.type) == "double") 
+						{
+							double doubleValue = std::stod(value);
+							if (!item.validationRule || (*item.validationRule)(TypedConfigValue<double>(doubleValue))) {
+								setValue(current_section, key, doubleValue);
+							} else {
+								std::cerr << "Validation failed for " << current_section << "." << key 
+										  << ". Using default value." << std::endl;
+								useDefaultValue(current_section, key, item);
+							}
+						} 
+						else if (std::string(item.type) == "int" ||
+							std::string(item.type) == "int") 
+						{
+							int intValue = std::stoi(value);
+							if (!item.validationRule || (*item.validationRule)(TypedConfigValue<int>(intValue))) {
+								setValue(current_section, key, intValue);
+							} else {
+								std::cerr << "Validation failed for " << current_section << "." << key 
+										  << ". Using default value." << std::endl;
+								useDefaultValue(current_section, key, item);
+							}
+						} 
+						else if (std::string(item.type) == "vector<double>" ||
+							std::string(item.type) == "std::vector<double>") 
+						{
+							std::vector<double> vec;
+							// remove any comments from the value string
+							std::string cleanValue = value.substr(0, value.find('#'));
+							cleanValue = trim(cleanValue);  // Trim any trailing spaces after removing comment
+						
+							std::istringstream iss(cleanValue);
+							std::string token;
+							bool parseError = false;
+							while (std::getline(iss, token, ',')) {
+								token = trim(token);
+								if (token.empty()) continue; // Skip empty elements
+								try {
+									size_t pos;
+									double num = std::stod(token, &pos);
+									if (pos != token.length()) {
+										throw std::invalid_argument("Invalid characters in number");
+									}
+									vec.push_back(num);
+								} catch (const std::exception& e) {
+									std::cerr << "Error parsing vector element '" << token << "': " << e.what() << std::endl;
+									parseError = true;
+									break;
+								}
+							}
+							if (!parseError && (!item.validationRule || (*item.validationRule)(TypedConfigValue<std::vector<double>>(vec)))) {
+								setValue(current_section, key, vec);
+							} else {
+								std::cerr << "Validation failed or parse error for " << current_section << "." << key 
+										<< ". Using default value." << std::endl;
+								useDefaultValue(current_section, key, item);
+							}
+						} 
+						else 
+						{
+							if (!item.validationRule || (*item.validationRule)(TypedConfigValue<std::string>(value))) {
+								setValue(current_section, key, value);
+							} else {
+								std::cerr << "Validation failed for " << current_section << "." << key 
+										  << ". Using default value." << std::endl;
+								useDefaultValue(current_section, key, item);
+							}
+						}
+					} catch (const std::exception& e) {
+						std::cerr << "Error processing " << current_section << "." << key 
+								  << ": " << e.what() << ". Using default value." << std::endl;
+						useDefaultValue(current_section, key, item);
+					}
+					break;
 				}
-				value = trim(value);
-				
-                if (!current_section.empty()) {
-                    auto configSections = getConfigSections();
-                    for (const auto& section : configSections) {
-                        if (section.name == current_section) {
-                            for (const auto& item : section.items) {
-                                if (item.name == key) {
-                                    try {
-                                        if (std::string(item.type) == "double") {
-                                            double doubleValue = std::stod(value);
-                                            if (!item.validationRule || (*item.validationRule)(TypedConfigValue<double>(doubleValue))) {
-                                                setValue(current_section, key, doubleValue);
-                                            } else {
-                                                std::cerr << "Validation failed for " << current_section << "." << key 
-                                                          << ". Using default value." << std::endl;
-                                                useDefaultValue(current_section, key, item);
-                                            }
-                                        } else if (std::string(item.type) == "int") {
-                                            int intValue = std::stoi(value);
-                                            if (!item.validationRule || (*item.validationRule)(TypedConfigValue<int>(intValue))) {
-                                                setValue(current_section, key, intValue);
-                                            } else {
-                                                std::cerr << "Validation failed for " << current_section << "." << key 
-                                                          << ". Using default value." << std::endl;
-                                                useDefaultValue(current_section, key, item);
-                                            }
-                                        } else if (std::string(item.type) == "vector<double>") {
-											std::vector<double> vec;
-											// remove any comments from the value string
-											std::string cleanValue = value.substr(0, value.find('#'));
-											cleanValue = trim(cleanValue);  // Trim any trailing spaces after removing comment
-										
-											std::istringstream iss(cleanValue);
-											std::string token;
-											bool parseError = false;
-											while (std::getline(iss, token, ',')) {
-												token = trim(token);
-												if (token.empty()) continue; // Skip empty elements
-												try {
-													size_t pos;
-													double num = std::stod(token, &pos);
-													if (pos != token.length()) {
-														throw std::invalid_argument("Invalid characters in number");
-													}
-													vec.push_back(num);
-												} catch (const std::exception& e) {
-													std::cerr << "Error parsing vector element '" << token << "': " << e.what() << std::endl;
-													parseError = true;
-													break;
-												}
-											}
-											if (!parseError && (!item.validationRule || (*item.validationRule)(TypedConfigValue<std::vector<double>>(vec)))) {
-												setValue(current_section, key, vec);
-											} else {
-												std::cerr << "Validation failed or parse error for " << current_section << "." << key 
-														<< ". Using default value." << std::endl;
-												useDefaultValue(current_section, key, item);
-											}
-										} else {
-                                            if (!item.validationRule || (*item.validationRule)(TypedConfigValue<std::string>(value))) {
-                                                setValue(current_section, key, value);
-                                            } else {
-                                                std::cerr << "Validation failed for " << current_section << "." << key 
-                                                          << ". Using default value." << std::endl;
-                                                useDefaultValue(current_section, key, item);
-                                            }
-                                        }
-                                    } catch (const std::exception& e) {
-                                        std::cerr << "Error processing " << current_section << "." << key 
-                                                  << ": " << e.what() << ". Using default value." << std::endl;
-                                        useDefaultValue(current_section, key, item);
-                                    }
-                                    break;
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
+				break;
+			}
         }
     }
 }

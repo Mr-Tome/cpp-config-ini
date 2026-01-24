@@ -56,9 +56,6 @@ public:
     template<typename T>
     void setValue(const std::string& key, const T& value);
 
-    void setValue(const std::string& key, const std::string& value);
-    void setValue(const std::string& key, const std::vector<double>& value);
-
     template<typename T>
     T getValue(const std::string& key) const;
 
@@ -83,9 +80,6 @@ public:
 
     template<typename T>
     void setValue(const std::string& section, const std::string& key, const T& value);
-
-    void setValue(const std::string& section, const std::string& key, const std::string& value);
-    void setValue(const std::string& section, const std::string& key, const std::vector<double>& value);
 
     bool hasValue(const std::string& section, const std::string& key) const;
 
