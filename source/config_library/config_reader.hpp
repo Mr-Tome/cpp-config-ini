@@ -91,13 +91,18 @@ public:
     
     const std::unordered_map<std::string, ConfigSection>& getSections() const { return sections; }
 
+    static std::string trim(const std::string& str);
 protected:
     void loadConfig();
-    static std::string trim(const std::string& str);
     void setValidationRules();
     
     std::string filepath;
     std::unordered_map<std::string, ConfigSection> sections;
+    
+    bool isIntType(const std::string& type) const;
+    bool isDoubleType(const std::string& type) const;
+    bool isVectorDoubleType(const std::string& type) const;
+    bool isVectorStringType(const std::string& type) const;
 	
 private:
     void useDefaultValue(const std::string& section, const std::string& key, const ConfigGen::ConfigItem& item);

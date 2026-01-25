@@ -120,6 +120,7 @@ namespace ConfigLib {
 	template<>
 	void TypedConfigValue<std::string>::fromString(const std::string& str) { value = str; }
 	
+	//specializations for std::vector<double>
 	template<>
 	TypedConfigValue<std::vector<double>>::TypedConfigValue(const std::vector<double>& val) : value(val) {}
 	
@@ -128,7 +129,7 @@ namespace ConfigLib {
 	
 	template<>
 	void TypedConfigValue<std::vector<double>>::setValue(const std::vector<double>& val) { value = val; }
-	
+
 	template<>
 	std::string TypedConfigValue<std::vector<double>>::toString() const {
 		std::ostringstream oss;
@@ -145,7 +146,7 @@ namespace ConfigLib {
 		std::istringstream iss(str);
 		std::string item;
 		while (std::getline(iss, item, ',')) {
-			value.push_back(std::stod(item));
+			value.push_back(std::stod(ConfigReader::trim(item)));
 		}
 	}
 	
@@ -154,6 +155,41 @@ namespace ConfigLib {
 		return std::make_shared<TypedConfigValue<std::vector<double>>>(value);
 	}
 	
+	//specializations for std::vector<string>
+	template<>
+	TypedConfigValue<std::vector<std::string>>::TypedConfigValue(const std::vector<std::string>& val) : value(val) {}
+
+	template<>
+	const std::vector<std::string>& TypedConfigValue<std::vector<std::string>>::getValue() const { return value; }
+
+	template<>
+	void TypedConfigValue<std::vector<std::string>>::setValue(const std::vector<std::string>& val) { value = val; }
+
+	template<>
+	std::string TypedConfigValue<std::vector<std::string>>::toString() const {
+		std::ostringstream oss;
+		for (size_t i = 0; i < value.size(); ++i) {
+			if (i > 0) oss << ",";
+			oss << value[i];
+		}
+		return oss.str();
+	}
+
+	template<>
+	void TypedConfigValue<std::vector<std::string>>::fromString(const std::string& str) {
+		value.clear();
+		std::istringstream iss(str);
+		std::string item;
+		while (std::getline(iss, item, ',')) {
+			value.push_back(ConfigReader::trim(item));
+		}
+	}
+
+	template<>
+	std::shared_ptr<ConfigValue> TypedConfigValue<std::vector<std::string>>::clone() const {
+		return std::make_shared<TypedConfigValue<std::vector<std::string>>>(value);
+	}
+
 	template<typename T>
 	void ConfigSection::setValue(const std::string& key, const T& value) {
 		std::cout << "ConfigSection::setValue called for key: " << key << " with type: " << typeid(T).name() << std::endl;
@@ -325,7 +361,7 @@ void ConfigReader::loadConfig() {
 			std::string value = line.substr(pos + 1);
 			
 			// remove the comments from the value
-			size_t commentPos = value.find('#'); //TODO: if a user puts a # in a std::string uh oh...
+			size_t commentPos = value.find('#'); //TODO: if a user puts a '#' in a std::string uh oh...
 			if (commentPos != std::string::npos) {
 				value = value.substr(0, commentPos);
 			}
@@ -400,6 +436,33 @@ void ConfigReader::loadConfig() {
 								useDefaultValue(current_section, key, item);
 							}
 						} 
+						else if (std::string(item.type) == "vector<string>" ||
+						std::string(item.type) == "vector<std::string>" ||
+						std::string(item.type) == "std::vector<string>" ||
+						std::string(item.type) == "std::vector<std::string>" ) 
+						{
+							std::vector<std::string> vec;
+							// Remove any comments from the value string
+							std::string cleanValue = value.substr(0, value.find('#'));
+							cleanValue = trim(cleanValue);
+
+							std::istringstream iss(cleanValue);
+							std::string token;
+							bool parseError = false;
+							while (std::getline(iss, token, ',')) {
+								token = trim(token);
+								if (token.empty()) continue; // Skip empty elements
+								vec.push_back(token);
+							}
+							
+							if (!parseError && (!item.validationRule || (*item.validationRule)(TypedConfigValue<std::vector<std::string>>(vec)))) {
+								setValue(current_section, key, vec);
+							} else {
+								std::cerr << "Validation failed or parse error for " << current_section << "." << key 
+										  << ". Using default value." << std::endl;
+								useDefaultValue(current_section, key, item);
+							}
+						}
 						else 
 						{
 							if (!item.validationRule || (*item.validationRule)(TypedConfigValue<std::string>(value))) {
@@ -423,27 +486,68 @@ void ConfigReader::loadConfig() {
     }
 }
 	
+    bool ConfigReader::isIntType(const std::string& type) const
+    {
+		return type == "int" || type == "integer";
+	}
+    bool ConfigReader::isDoubleType(const std::string& type) const{return type == "double";}
+    bool ConfigReader::isVectorDoubleType(const std::string& type) const
+    {
+		return (type == "vector<double>" ||
+						type == "vector<std::double>" ||
+						type == "std::vector<double>" ||
+						type == "std::vector<std::double>" ); 
+	}
+    bool ConfigReader::isVectorStringType(const std::string& type) const
+    {
+		return (type == "vector<string>" ||
+						type == "vector<std::string>" ||
+						type == "std::vector<string>" ||
+						type == "std::vector<std::string>" ); 
+	}
+    
 	void ConfigReader::setValueWithValidation(const std::string& section, const std::string& key, const std::string& value) {
 		auto configSections = getConfigSections();
-		for (const auto& configSection : configSections) {
-			if (configSection.name == section) {
-				for (const auto& item : configSection.items) {
-					if (item.name == key) {
-						if (std::string(item.type) == "double") {
+		for (const auto& configSection : configSections) 
+		{
+			if (configSection.name == section) 
+			{
+				for (const auto& item : configSection.items) 
+				{
+					if (item.name == key) 
+					{
+						if (isDoubleType(std::string(item.type))) 
+						{
 							double doubleValue = std::stod(value);
 							setValue(section, key, doubleValue);
-						} else if (std::string(item.type) == "int") {
+						} 
+						else if (isIntType(std::string(item.type))) 
+						{
 							int intValue = std::stoi(value);
 							setValue(section, key, intValue);
-						} else if (std::string(item.type) == "vector<double>") {
+						} 
+						else if (isVectorDoubleType(std::string(item.type))) 
+						{
 							std::vector<double> vec;
 							std::istringstream iss(value);
 							std::string token;
 							while (std::getline(iss, token, ',')) {
-								vec.push_back(std::stod(token));
+								vec.push_back(std::stod(trim(token)));
 							}
 							setValue(section, key, vec);
-						} else {
+						}
+						else if (isVectorStringType(std::string(item.type)))
+						{
+							std::vector<std::string> vec;
+							std::istringstream iss(value);
+							std::string token;
+							while (std::getline(iss, token, ',')) {
+								vec.push_back(trim(token));
+							}
+							setValue(section, key, vec);
+						}
+						else 
+						{
 							setValue(section, key, value);
 						}
 						return;
@@ -518,26 +622,29 @@ void ConfigReader::loadConfig() {
 	template class TypedConfigValue<double>; 
 	template class TypedConfigValue<std::string>;
 	template class TypedConfigValue<std::vector<double>>;
+	template class TypedConfigValue<std::vector<std::string>>;
 	
 	template void ConfigSection::setValue<int>(const std::string&, const int&);
 	template void ConfigSection::setValue<double>(const std::string&, const double&);
 	template void ConfigSection::setValue<std::string>(const std::string&, const std::string&);
 	template void ConfigSection::setValue<std::vector<double>>(const std::string&, const std::vector<double>&);
-
+	template void ConfigSection::setValue<std::vector<std::string>>(const std::string&, const std::vector<std::string>&);
 	
 	template int ConfigSection::getValue<int>(const std::string&) const;
 	template double ConfigSection::getValue<double>(const std::string&) const;
 	template std::string ConfigSection::getValue<std::string>(const std::string&) const;
 	template std::vector<double> ConfigSection::getValue<std::vector<double>>(const std::string&) const;
+	template std::vector<std::string> ConfigSection::getValue<std::vector<std::string>>(const std::string&) const;
 	
 	template int ConfigReader::getValue<int>(const std::string&, const std::string&) const;
 	template double ConfigReader::getValue<double>(const std::string&, const std::string&) const;
 	template std::string ConfigReader::getValue<std::string>(const std::string&, const std::string&) const;
 	template std::vector<double> ConfigReader::getValue<std::vector<double>>(const std::string&, const std::string&) const;
+	template std::vector<std::string> ConfigReader::getValue<std::vector<std::string>>(const std::string&, const std::string&) const;
 	
 	template void ConfigReader::setValue<int>(const std::string&, const std::string&, const int&);
 	template void ConfigReader::setValue<double>(const std::string&, const std::string&, const double&);
 	template void ConfigReader::setValue<std::string>(const std::string&, const std::string&, const std::string&);
 	template void ConfigReader::setValue<std::vector<double>>(const std::string&, const std::string&, const std::vector<double>&);
-	
+	template void ConfigReader::setValue<std::vector<std::string>>(const std::string&, const std::string&, const std::vector<std::string>&);
 } // namespace ConfigLib
