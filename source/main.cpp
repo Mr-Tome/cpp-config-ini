@@ -118,12 +118,78 @@ void do_specific_algorithm_config()
         std::cerr << "Error: " << e.what() << std::endl;
     }
 }
+
+struct Color : public ConfigLib::ConfigType<Color>
+{
+	int red, green, blue;
+	Color() : red(0), green(0),blue(0){};
+	Color(int r, int g, int b) : red(r), green(g), blue(b){}; 
+	
+	
+	static const char* typeName() {return "Color";}
+	
+	std::string toString() const
+	{
+		std::ostringstream output;
+		output << red << "," << green << "," << blue;
+		return output.str();
+	}
+	
+	static Color fromString(const std::string& str)
+	{
+		Color output;
+		std::istringstream iss(str);
+		char comma; //doesnt matter what it is, just need 1 char...
+		iss >> output.red >> comma >>output.green >> comma >> output.blue;
+		return output;
+	}
+	
+	//all 3 methods, so we dont get compile time errors...
+};
+
+struct ColorConfigIniClass : public ConfigLib::ConfigReader
+{
+	ColorConfigIniClass() : ConfigReader() 
+	{
+		initialize(); // future work to make ConfigReader CRTP, then it can call initialize...
+	}
+	
+    std::string getConfigFilePath() const override {
+        return "color_config_v1.ini";
+    }
+    
+    std::vector<ConfigLib::ConfigGen::ConfigSection> getConfigSections() const override
+    {
+		return {
+			{ 
+				"FirstColor",
+				{
+					{"red", "Color", "255,0,0", "this is the color red", nullptr},
+					{"green", "Color", "0,255,0", "this is the color green", nullptr},
+					{"blue", "Color", "0,0,255", "this is the color blue.", nullptr},
+					{"sample_bool", "bool", "true", "this is true.", nullptr}
+				}
+			},
+			{ 
+				"secondColor_group",
+				{
+					{"black", "Color", "0,0,0", "this is the color red", nullptr},
+					{"white", "Color", "255,255,255", "this is the color green", nullptr},
+					{"gray", "Color", "128,128,128", "this is the color blue.", nullptr},
+					{"sample_vector_int", "vector<int>", "0,1,2,2,3,4,5", "this is an int vector.", nullptr},
+					{"sample_vector_string", "vector<string>", "0,1asdf,2,2,3213f,4,5", "this is a string vector.", nullptr}
+				}
+			}
+		};
+	}
+};
  
 int main() {
     std::cout << "Program started" << std::endl;
     
-    do_specific_algorithm_config();
+    //do_specific_algorithm_config();
     
+	ColorConfigIniClass myclass;
 
     std::cout << "Program finished" << std::endl;
     std::cout.flush(); 
