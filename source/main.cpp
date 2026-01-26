@@ -40,9 +40,9 @@ public:
                     {"FW", "double", "-999.0", "Fixed Wing value", &between0And100},
                     {"RW", "double", "20.0", "Rotary Wing value", &between0And100},
                     {"CM", "double", "1010.0", "Cruise Missile value", &between0And100},
-                    {"Misc", "std::vector<double>", "1.0,2.0,3.0", "Misc item just for proof of principle", nullptr},
+                    {"Misc", "vector<double>", "1.0,2.0,3.0", "Misc item just for proof of principle", nullptr},
                     {"string_test","string","ALL","string test",nullptr},
-                    {"std_string_test","std::string","wew","std::string test",nullptr}
+                    {"std_string_test","string","wew","std::string test",nullptr}
                 }
             }
         };
