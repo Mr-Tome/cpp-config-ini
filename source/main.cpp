@@ -48,11 +48,10 @@ public:
         };
     }
 };
- 
-int main() {
-    std::cout << "Program started" << std::endl;
-    
-    try {
+
+void do_specific_algorithm_config()
+{
+	try {
         std::cout << "Creating SpecificAlgorithmConfig" << std::endl;
         SpecificAlgorithmConfig config;
         //config.initialize();
@@ -118,9 +117,16 @@ int main() {
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     }
+}
+ 
+int main() {
+    std::cout << "Program started" << std::endl;
+    
+    do_specific_algorithm_config();
+    
 
     std::cout << "Program finished" << std::endl;
-    std::cout.flush();  // Ensure all output is flushed
+    std::cout.flush(); 
     
     return 0;
 }
