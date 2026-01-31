@@ -84,8 +84,7 @@ public:
 		try 
 		{
 			auto newValue = std::make_shared<TypedConfigValue<T>>(value);
-			
-			// Apply validation rule if it exists
+			// apply the validation runle if it exists
 			auto rule_it = validationRules.find(key);
 			if (rule_it != validationRules.end() && rule_it->second) {
 				if (!(*rule_it->second)(*newValue)) {
@@ -140,7 +139,6 @@ public:
 		throw std::runtime_error("Key not found or type mismatch: " + key);
 	}
 
-    bool hasKey(const std::string& key) const;
     void setValidationRule(const std::string& key, const ValidationRules::Rule* rule);
     const std::unordered_map<std::string, std::shared_ptr<ConfigValue>>& getValues() const;
 	std::unordered_map<std::string, std::shared_ptr<ConfigValue>>& getValues();
@@ -148,8 +146,6 @@ public:
 private:
     std::unordered_map<std::string, std::shared_ptr<ConfigValue>> values;
     std::unordered_map<std::string, const ValidationRules::Rule*> validationRules;
-    
-	friend class ConfigReader;
 };
 
 class ConfigReader {

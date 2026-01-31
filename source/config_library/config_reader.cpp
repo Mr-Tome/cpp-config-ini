@@ -124,10 +124,6 @@ namespace ConfigLib
 		}
 	}
 	
-	bool ConfigSection::hasKey(const std::string& key) const {
-		return values.find(key) != values.end();
-	}
-	
 	void ConfigSection::setValidationRule(const std::string& key, const ValidationRules::Rule* rule) {
         validationRules[key] = rule;
     }
