@@ -281,13 +281,13 @@ namespace ConfigLib
      
     namespace 
     {
-        TypeRegistrar<int> registerInt;
-        TypeRegistrar<double> registerDouble;
-        TypeRegistrar<bool> registerBool;
-        TypeRegistrar<std::string> registerString;
-        TypeRegistrar<std::vector<int>> registerVecInt;
-        TypeRegistrar<std::vector<double>> registerVecDouble;
-        TypeRegistrar<std::vector<std::string>> registerVecString;
+        LibProvidedType<int> registerInt;
+        LibProvidedType<double> registerDouble;
+        LibProvidedType<bool> registerBool;
+        LibProvidedType<std::string> registerString;
+        LibProvidedType<std::vector<int>> registerVecInt;
+        LibProvidedType<std::vector<double>> registerVecDouble;
+        LibProvidedType<std::vector<std::string>> registerVecString;
     }
 
 } // namespace ConfigLib

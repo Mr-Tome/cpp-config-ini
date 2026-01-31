@@ -16,9 +16,7 @@ namespace ConfigLib
     // users specialize this template for their custom types.
     template<typename T, typename NotEnabledDummyParameter = void>
     struct TypeParser
-    {
-        using value_type = T;
-        
+    {        
         static T fromString(const std::string& str);
         static std::string toString(const T& value);
         static const char* typeName();
@@ -172,13 +170,11 @@ namespace ConfigLib
         std::set<std::string> typeNames;
     };
     
-    /**
-     * TypeRegistrar - RAII helper for automatic type registration (UNCHANGED)
-     */
+    //auto type registration for the ints, doubles, etc...
     template<typename T>
-    struct TypeRegistrar
+    struct LibProvidedType
     {
-        TypeRegistrar()
+        LibProvidedType()
         {
             TypeRegistry::instance().registerType<T>();
         }
@@ -193,7 +189,7 @@ namespace ConfigLib
         // self-registration mechanism
         struct Registrar 
         {
-            Registrar();  // Defined after TypeRegistry and TypeParser
+            Registrar();
         };
         
         static Registrar m_registrar;
@@ -201,7 +197,8 @@ namespace ConfigLib
     protected:
         ConfigType() 
         {
-            // just touching this during initialization sot hat the to ensure initialization
+            // just touching this during initialization so compiler doesnt
+            // optimize away...now can get called before main
             (void)m_registrar;
         }
     };
@@ -209,12 +206,17 @@ namespace ConfigLib
     template<typename Derived>
     typename ConfigType<Derived>::Registrar ConfigType<Derived>::m_registrar;
     
-    // SFINAE TypeParser Specialization for ConfigType-derived types
+    //might need to move this below TypeParser on other compilers?
+    template<typename Derived>
+    ConfigType<Derived>::Registrar::Registrar() 
+    {
+        TypeRegistry::instance().registerType<Derived>();
+    }
+    
+    // SFINAE TypeParser Specialization for ConfigType's derived types
     template<typename Derived>
     struct TypeParser<Derived, typename std::enable_if<std::is_base_of<ConfigType<Derived>, Derived>::value>::type> 
-    {
-        using value_type = Derived;
-        
+    {        
         static Derived fromString(const std::string& str) 
         {
             return Derived::fromString(str);
@@ -238,37 +240,6 @@ namespace ConfigLib
             } catch (...) {
                 return false;
             }
-        }
-    };
-    
-    // now that TypeParser is defined, we can do the Registrar implementation
-    template<typename Derived>
-    ConfigType<Derived>::Registrar::Registrar() 
-    {
-        TypeRegistry::instance().registerType<Derived>();
-    }
-    
-    /**
-     * Bulk registration helper 
-     * 
-     * Usage:
-     *   BulkRegister<Color, Point, Rectangle> registerMyTypes;
-     */
-    template<typename... Types>
-    struct BulkRegister;
-    
-    template<>
-    struct BulkRegister<> {
-        BulkRegister() {}
-    };
-    
-    template<typename First, typename... Rest>
-    struct BulkRegister<First, Rest...> 
-    {
-        BulkRegister() 
-        {
-            TypeRegistry::instance().registerType<First>();
-            BulkRegister<Rest...>();
         }
     };
 

@@ -215,7 +215,7 @@ int main() {
     std::cout << "Program started" << std::endl;
     
     do_specific_algorithm_config();
-    //test_colors();
+    test_colors();
 	
     std::cout << "Program finished" << std::endl;
     std::cout.flush(); 
