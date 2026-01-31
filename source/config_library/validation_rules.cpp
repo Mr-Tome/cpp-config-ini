@@ -5,7 +5,8 @@
 
 namespace ValidationRules {
 
-	bool GreaterThanZero::operator()(const ConfigLib::ConfigValue& value) const {
+	bool GreaterThanZero::operator()(const ConfigLib::ConfigValue& value) const 
+	{
 		if (const auto* intValue = dynamic_cast<const ConfigLib::TypedConfigValue<int>*>(&value)) {
             return intValue->getValue() > 0;
         }
@@ -22,7 +23,8 @@ namespace ValidationRules {
         return false;
     }
 	
-	bool GreaterThanOrEqualToZero::operator()(const ConfigLib::ConfigValue& value) const {
+	bool GreaterThanOrEqualToZero::operator()(const ConfigLib::ConfigValue& value) const 
+	{
 		if (const auto* intValue = dynamic_cast<const ConfigLib::TypedConfigValue<int>*>(&value)) {
             return intValue->getValue() >= 0;
         }

@@ -17,10 +17,10 @@ namespace ConfigGen
 {
 struct ConfigItem 
 {
-   const char* name;
-   const char* type;
-   const char* defaultValue;
-   const char* description;
+   const std::string name;
+   const std::string type;
+   const std::string defaultValue;
+   const std::string description;
    const ValidationRules::Rule* validationRule;
 };
 

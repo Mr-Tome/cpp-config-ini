@@ -6,9 +6,10 @@
 #include <vector>
 
 namespace ConfigLib {
-    class ConfigValue;
+    class ConfigValue; // fwd decl
 }
-namespace ValidationRules {
+namespace ValidationRules 
+{
 
 	class Rule {
     public:
@@ -39,7 +40,8 @@ namespace ValidationRules {
 		double max_;
 	};
 	
-	class InList : public Rule {
+	class InList : public Rule 
+	{
 	public:
 		InList(const std::vector<std::string>& validValues) : validValues_(validValues) {}
 		bool operator()(const ConfigLib::ConfigValue& value) const override;
@@ -56,6 +58,6 @@ namespace ValidationRules {
 	Rule* betweenValues(double min, double max);
     Rule* inList(const std::vector<std::string>& validValues);
 
-}
+} // namespace ValidationRules
 
 #endif
