@@ -4,9 +4,11 @@
 #include <fstream>
 #include <memory>
 
-class SpecificAlgorithmConfig : public ConfigLib::ConfigReader {
+class SpecificAlgorithmConfig : public ConfigLib::ConfigReader 
+{
 public:
-    SpecificAlgorithmConfig() : ConfigReader() {
+    SpecificAlgorithmConfig() 
+    {
         std::cout << "SpecificAlgorithmConfig constructor started" << std::endl;
 		initialize();
         std::cout << "SpecificAlgorithmConfig constructor finished" << std::endl;
@@ -82,7 +84,7 @@ void do_specific_algorithm_config()
 		
         // Testing validation logic
         try {
-            config.setValue("General", "FW", 200.0);
+            config.setValue("General", "FW", 100.0);
         } catch (const std::exception& e) {
             std::cerr << "Validation error: " << e.what() << std::endl;
         }
@@ -113,7 +115,7 @@ void do_specific_algorithm_config()
 			string_misc += std::to_string(it);
 		}
 		std::cout << "Misc values: " << string_misc << std::endl;
-        
+        config.saveConfig();
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;
     }
@@ -149,7 +151,7 @@ struct Color : public ConfigLib::ConfigType<Color>
 
 struct ColorConfigIniClass : public ConfigLib::ConfigReader
 {
-	ColorConfigIniClass() : ConfigReader() 
+	ColorConfigIniClass()
 	{
 		initialize(); // future work to make ConfigReader CRTP, then it can call initialize...
 	}
@@ -184,13 +186,37 @@ struct ColorConfigIniClass : public ConfigLib::ConfigReader
 	}
 };
  
+void test_colors()
+{
+	ColorConfigIniClass my_color_config;
+	
+	/////testing the getter for Color's  ConfigType
+	Color red =  my_color_config.getValue<Color>("FirstColor","red");
+	
+	std::cout << "red\'s red: " << red.red << std::endl;
+	
+	std::string red_color_string = red.toString();
+	
+	std::cout << "1Red Color String (r, g, b): " <<red_color_string << std::endl;
+	std::cout << "2Red Color String (r, g, b): " <<red.toString() << std::endl;
+	std::cout <<"////////////////////////////////////////////////////"<<std::endl;
+	
+	/////testing the setter for Color's  ConfigType (first setting, then getting...)
+	Color black = Color();
+	std::cout << "Black Color String (r, g, b): " <<black.toString() << std::endl;
+	my_color_config.setValue<Color>("FirstColor","red", black);
+	Color should_be_black = my_color_config.getValue<Color>("FirstColor","red");
+	std::cout << "Should be Black Color String (r, g, b): " <<should_be_black.toString() << std::endl;
+	
+	my_color_config.saveConfig();
+}
+ 
 int main() {
     std::cout << "Program started" << std::endl;
     
-    //do_specific_algorithm_config();
-    
-	ColorConfigIniClass myclass;
-
+    do_specific_algorithm_config();
+    //test_colors();
+	
     std::cout << "Program finished" << std::endl;
     std::cout.flush(); 
     
