@@ -32,15 +32,15 @@ struct ConfigSection
 
 bool validateConfig(const std::vector<ConfigSection>& sections);
 std::string generateConfig(const std::vector<ConfigSection>& sections);
-}
+} // namespace ConfigGen
 
 class ConfigValue 
 {
-public:
-virtual ~ConfigValue() = default;
-virtual std::string toString() const = 0;
-virtual void fromString(const std::string& str) = 0;
-virtual std::shared_ptr<ConfigValue> clone() const = 0;
+	public:
+	virtual ~ConfigValue() = default;
+	virtual std::string toString() const = 0;
+	virtual void fromString(const std::string& str) = 0;
+	virtual std::shared_ptr<ConfigValue> clone() const = 0;
 };
 
 template<typename T>
@@ -63,7 +63,7 @@ public:
 	}
 
 private:
-T	 value;
+	T value;
 };
 
 //free function type registry helper
