@@ -154,10 +154,8 @@ private:
 
 class ConfigReader {
 public:
-    ConfigReader();
+    ConfigReader() = default;
     virtual ~ConfigReader() = default;
-
-	void initialize();
     
 	template<typename T>
 	T getValue(const std::string& section, const std::string& key) const 
@@ -185,34 +183,29 @@ public:
 		
 		sect_it->second.setValue(key, value);
 	}
-	
-    bool hasValue(const std::string& section, const std::string& key) const;
 
-    void setValidationRule(const std::string& section, const std::string& key, const ValidationRules::Rule* rule);
+
     void saveConfig() const;
 
     virtual std::string getConfigFilePath() const = 0;
     virtual std::vector<ConfigGen::ConfigSection> getConfigSections() const = 0;
     
     const std::unordered_map<std::string, ConfigSection>& getSections() const { return sections; }
-
-    static std::string trim(const std::string& str);
+    
 protected:
+	void initialize();
     void loadConfig();
     void setValidationRules();
     
+    void setValidationRule(const std::string& section, const std::string& key, const ValidationRules::Rule* rule);
+    
     std::string filepath;
     std::unordered_map<std::string, ConfigSection> sections;
-    
-    bool isIntType(const std::string& type) const;
-    bool isDoubleType(const std::string& type) const;
-    bool isVectorDoubleType(const std::string& type) const;
-    bool isVectorStringType(const std::string& type) const;
 	
 private:
     void useDefaultValue(const std::string& section, const std::string& key, const ConfigGen::ConfigItem& item);
     void setValueWithValidation(const std::string& section, const std::string& key, const std::string& value);
-	
+	static std::string trim(const std::string& str);
 };
 
 void generateConfigFile(const ConfigReader& reader);

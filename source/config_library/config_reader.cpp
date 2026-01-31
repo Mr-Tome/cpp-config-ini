@@ -139,13 +139,6 @@ namespace ConfigLib
     std::unordered_map<std::string, std::shared_ptr<ConfigValue>>& ConfigSection::getValues() {
         return values;
     }
-    
-	ConfigReader::ConfigReader() 
-	{
-		std::cout << "ConfigReader constructor started" << std::endl;
-		//initialize();
-		std::cout << "ConfigReader constructor finished" << std::endl;
-	}
 	
 	void ConfigReader::initialize() {
 		std::cout << "ConfigReader::initialize started" << std::endl;
@@ -196,15 +189,6 @@ namespace ConfigLib
 		}
 		std::cout << "ConfigReader::initialize finished" << std::endl;
 	}	
-	
-	bool ConfigReader::hasValue(const std::string& section, const std::string& key) const 
-	{
-		auto sect_it = sections.find(section);
-		if (sect_it != sections.end()) {
-			return sect_it->second.hasKey(key);
-		}
-		return false;
-	}
 	
 	void ConfigReader::setValidationRule(const std::string& section, 
 										 const std::string& key, 
