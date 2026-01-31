@@ -9,6 +9,51 @@
 
 namespace ConfigLib 
 {
+	const std::string instructions_in_INI_for_end_users = R"(
+# Instructions for End Users
+# 1. Configuration File Format:
+#    * The configuration file is in INI format
+#    * Sections are denoted by square brackets: [SectionName]
+#    * Key-value pairs are separated by an equals sign: Key = Value
+#    * Comments start with a # symbol
+# 2. Modifying the Configuration:
+#    a. Open the configuration file (e.g., specific_algorithm_config.ini) in a text editor
+#    b. Locate the section and key you want to modify
+#    c. Change the value after the equals sign
+#    d. Save the file
+# 3. Example Configuration:
+#    [Section1]
+#    name1 = 0
+#    name2 = 1.0
+#    [Section2]
+#    name3 = 500.0
+#    [Section3]
+#    name4 = 10.0
+#    name5 = 20.0
+#    name1 = 30.0
+#    name2 = 1.0,2.0,3.0
+# 4. Adding New Values:
+#    * You can add new key-value pairs to existing sections
+#    * Do not add new sections unless instructed by the developers
+# 5. Value Types:
+#    * Numbers can be integers or decimals (e.g., 500 or 500.0)
+#    * Text should not be enclosed in quotes
+#    * Lists are comma-separated (e.g., 1.0,2.0,3.0)
+# 6. Validation:
+#    * Some values may have validation rules (e.g., must be positive)
+#    * If you enter an invalid value, the application will use the default value
+# 7. Troubleshooting:
+#    * If the application fails to start, check for typos in the configuration file
+#    * Ensure all required keys are present
+#    * If in doubt, rename or delete the configuration file to reset to defaults
+# 8. Best Practices:
+#    * Keep a backup of the original configuration file
+#    * Document any changes you make for future reference
+#    * If you're unsure about a setting, consult the application documentation or contact the developers
+# Remember, incorrect configuration can affect the application's performance or cause errors.
+# If you're unsure about a setting, it's best to consult with the development team or refer to the application's documentation.
+)";
+	
 	namespace ConfigGen 
 	{
 		// This function can be used for compile-time checks if needed
@@ -73,50 +118,7 @@ namespace ConfigLib
 				config_content += "\n";
 			}
 	
-			config_content += R"(
-# Instructions for End Users
-# 1. Configuration File Format:
-#    * The configuration file is in INI format
-#    * Sections are denoted by square brackets: [SectionName]
-#    * Key-value pairs are separated by an equals sign: Key = Value
-#    * Comments start with a # symbol
-# 2. Modifying the Configuration:
-#    a. Open the configuration file (e.g., specific_algorithm_config.ini) in a text editor
-#    b. Locate the section and key you want to modify
-#    c. Change the value after the equals sign
-#    d. Save the file
-# 3. Example Configuration:
-#    [Section1]
-#    name1 = 0
-#    name2 = 1.0
-#    [Section2]
-#    name3 = 500.0
-#    [Section3]
-#    name4 = 10.0
-#    name5 = 20.0
-#    name1 = 30.0
-#    name2 = 1.0,2.0,3.0
-# 4. Adding New Values:
-#    * You can add new key-value pairs to existing sections
-#    * Do not add new sections unless instructed by the developers
-# 5. Value Types:
-#    * Numbers can be integers or decimals (e.g., 500 or 500.0)
-#    * Text should not be enclosed in quotes
-#    * Lists are comma-separated (e.g., 1.0,2.0,3.0)
-# 6. Validation:
-#    * Some values may have validation rules (e.g., must be positive)
-#    * If you enter an invalid value, the application will use the default value
-# 7. Troubleshooting:
-#    * If the application fails to start, check for typos in the configuration file
-#    * Ensure all required keys are present
-#    * If in doubt, rename or delete the configuration file to reset to defaults
-# 8. Best Practices:
-#    * Keep a backup of the original configuration file
-#    * Document any changes you make for future reference
-#    * If you're unsure about a setting, consult the application documentation or contact the developers
-# Remember, incorrect configuration can affect the application's performance or cause errors.
-# If you're unsure about a setting, it's best to consult with the development team or refer to the application's documentation.
-)";
+			config_content += instructions_in_INI_for_end_users;
 	
 			return config_content;
 		}
@@ -138,7 +140,8 @@ namespace ConfigLib
         return values;
     }
     
-	ConfigReader::ConfigReader() : filepath("") {
+	ConfigReader::ConfigReader() 
+	{
 		std::cout << "ConfigReader constructor started" << std::endl;
 		//initialize();
 		std::cout << "ConfigReader constructor finished" << std::endl;
@@ -323,18 +326,37 @@ namespace ConfigLib
 	
 	void ConfigReader::saveConfig() const 
 	{
+		std::cout << "Saving the current configuration to: " << this->filepath<< std::endl;
 		std::ofstream file(filepath);
-		if (!file.is_open()) {
+		if (!file.is_open()) 
+		{
 			throw std::runtime_error("Unable to open file for writing: " + filepath);
 		}
-	
-		for (const auto& section : sections) {
-			file << "[" << section.first << "]\n";
-			for (const auto& value : section.second.getValues()) {
-				file << value.first << " = " << value.second->toString() << "\n";
+
+		auto default_configs_sections = getConfigSections();
+		file << "# Configuration file\n\n";
+		for (const auto& default_section : default_configs_sections) 
+		{
+			file << "[" << default_section.name << "]\n";
+			for (const auto& item : default_section.items) 
+			{
+				std::string currentValue = sections.at(default_section.name).getValues().at(item.name)->toString();
+				file << item.name << " = " << currentValue
+					 << " # type: " << item.type
+					 << ", description: " << item.description;
+				
+				if (item.validationRule) 
+				{
+					file << " (validationRule: " << item.validationRule->toString() << ")";
+				}
+				file << "\n";
 			}
 			file << "\n";
 		}
+		
+		
+		file << instructions_in_INI_for_end_users;
+		std::cout << "Finished saving the current configuration to: " << this->filepath<< std::endl;
 	}
 	
 	std::string ConfigReader::trim(const std::string& str) 
