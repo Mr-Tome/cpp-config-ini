@@ -56,14 +56,14 @@ namespace ConfigLib
 	
 	namespace ConfigGen 
 	{
-		// This function can be used for compile-time checks if needed
+		// function can be used for compile-time checks if needed
 		constexpr bool validateConfigStructure() 
 		{
-			// Add any compile-time checks here
+			// i can't do it yet, but compile-time checks here..
 			return true;
 		}
 	
-		// Runtime validation of the configuration
+		// unlike the function above, this is the runtime validation of the configuration
 		bool validateConfig(const std::vector<ConfigSection>& sections) 
         {
             auto& registry = TypeRegistry::instance();
@@ -153,7 +153,7 @@ namespace ConfigLib
 			return;
 		}
 	
-		// runtime validation
+	
 		if (!ConfigGen::validateConfig(configSections)) 
 		{
 			throw std::runtime_error("Invalid configuration detected at runtime");
@@ -258,6 +258,14 @@ namespace ConfigLib
 
 		std::string current_section;
 		std::string line;
+		
+		std::unordered_map<std::string,
+		    std::unordered_map<std::string, const ConfigGen::ConfigItem*>> schemaLookup;
+		    
+		for (const auto& section : configSections)
+			for (const auto& item : section.items)
+				schemaLookup[section.name][item.name] = &item;
+				
 		while (std::getline(file, line)) 
 		{
 			line = trim(line);
@@ -286,40 +294,36 @@ namespace ConfigLib
 			
 			if(current_section.empty()) continue;
 			
-			for (const auto& section : configSections) 
+			auto sectionIt = schemaLookup.find(current_section);
+			if (sectionIt == schemaLookup.end()) continue;
+			
+			auto itemIt = sectionIt->second.find(key);
+			if (itemIt == sectionIt->second.end()) continue;
+			const ConfigGen::ConfigItem& item = *itemIt->second;
+			
+			try 
 			{
-				if(section.name != current_section) continue;
+				auto& registry = TypeRegistry::instance();
+				auto parsedValue = registry.parseValue(item.type, value);
 				
-				for (const auto& item : section.items) 
+				//if there's a rule, let's validate against it.
+				if (!item.validationRule || (*item.validationRule)(*parsedValue)) 
 				{
-					if (item.name != key) continue;
-					try 
-					{
-						auto& registry = TypeRegistry::instance();
-						auto parsedValue = registry.parseValue(item.type, value);
-						
-						//if there's a rule, let's validate against it.
-						if (!item.validationRule || (*item.validationRule)(*parsedValue)) 
-						{
-							sections[current_section].getValues()[key] = parsedValue;
-						} 
-						else 
-						{
-							std::cerr << "Validation failed for " << current_section << "." << key 
-									  << ". Using default value." << std::endl;
-							useDefaultValue(current_section, key, item);
-						}
-					} 
-					catch (const std::exception& e) 
-					{
-						std::cerr << "Error processing " << current_section << "." << key 
-								  << ": " << e.what() << ". Using default value." << std::endl;
-						useDefaultValue(current_section, key, item);
-					}
-					break;
+					sections[current_section].getValues()[key] = parsedValue;
+				} 
+				else 
+				{
+					std::cerr << "Validation failed for " << current_section << "." << key 
+							  << ". Using default value." << std::endl;
+					useDefaultValue(current_section, key, item);
 				}
-				break;
-			}
+			} 
+			catch (const std::exception& e) 
+			{
+				std::cerr << "Error processing " << current_section << "." << key 
+						  << ": " << e.what() << ". Using default value." << std::endl;
+				useDefaultValue(current_section, key, item);
+			}			
 		}
 	}
     	
