@@ -6,19 +6,20 @@
 #include <cmath>
 #include <numeric>
 
-class MonteCarloConfig : public ConfigLib::ConfigReader {
+class MonteCarloConfig : public ConfigLib::ConfigReader<MonteCarloConfig>
+{
 public:
-    MonteCarloConfig() : ConfigReader() {
-        std::cout << "MonteCarloConfig constructor started" << std::endl;
-        initialize();
-        std::cout << "MonteCarloConfig constructor finished" << std::endl;
+    MonteCarloConfig() 
+    {
+        std::cout << "MonteCarloConfig constructor called" << std::endl;
     }
 
-    std::string getConfigFilePath() const override {
+    std::string getConfigFilePath() const 
+    {
         return "monte_carlo_config.ini";
     }
 
-    std::vector<ConfigLib::ConfigGen::ConfigSection> getConfigSections() const override 
+    std::vector<ConfigLib::ConfigGen::ConfigSection> getConfigSections() const 
     {
         return {
             {

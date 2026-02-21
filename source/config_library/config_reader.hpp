@@ -36,7 +36,7 @@ std::string generateConfig(const std::vector<ConfigSection>& sections);
 
 class ConfigValue 
 {
-	public:
+public:
 	virtual ~ConfigValue() = default;
 	virtual std::string toString() const = 0;
 	virtual void fromString(const std::string& str) = 0;
@@ -148,10 +148,11 @@ private:
     std::unordered_map<std::string, const ValidationRules::Rule*> validationRules;
 };
 
-class ConfigReader {
+//owns all data and controls the i/o logic
+class ConfigReaderBase {
 public:
-    ConfigReader() = default;
-    virtual ~ConfigReader() = default;
+    ConfigReaderBase() = default;
+    virtual ~ConfigReaderBase() = default;
     
 	template<typename T>
 	T getValue(const std::string& section, const std::string& key) const 
@@ -181,17 +182,13 @@ public:
 	}
 
 
-    void saveConfig() const;
-
-    virtual std::string getConfigFilePath() const = 0;
-    virtual std::vector<ConfigGen::ConfigSection> getConfigSections() const = 0;
+    void saveConfig(const std::vector<ConfigGen::ConfigSection>& configSections) const;
     
     const std::unordered_map<std::string, ConfigSection>& getSections() const { return sections; }
     
 protected:
-	void initialize();
-    void loadConfig();
-    void setValidationRules();
+	void initialize(const std::string& filePath,
+					const std::vector<ConfigGen::ConfigSection>& configSections);
     
     void setValidationRule(const std::string& section, const std::string& key, const ValidationRules::Rule* rule);
     
@@ -199,10 +196,27 @@ protected:
     std::unordered_map<std::string, ConfigSection> sections;
 	
 private:
+    void loadConfig(const std::vector<ConfigGen::ConfigSection>& configSections);
+    void setValidationRules(const std::vector<ConfigGen::ConfigSection>& configSections);
     void useDefaultValue(const std::string& section, const std::string& key, const ConfigGen::ConfigItem& item);
-    void setValueWithValidation(const std::string& section, const std::string& key, const std::string& value);
 	static std::string trim(const std::string& str);
 };
 
-void generateConfigFile(const ConfigReader& reader);
+//only thing this should be doing is calling derived class initialize and saveConfig
+template<typename Derived>
+class ConfigReader : public ConfigReaderBase
+{
+public:
+	ConfigReader()
+	{
+		Derived& d = static_cast<Derived&>(*this);
+		initialize(d.getConfigFilePath(), d.getConfigSections());
+	}
+	
+	void saveConfig() const
+	{
+		const Derived& d = static_cast<const Derived&>(*this);
+		ConfigReaderBase::saveConfig(d.getConfigSections());
+	}
+};
 } // namespace ConfigLib

@@ -4,22 +4,21 @@
 #include <fstream>
 #include <memory>
 
-class SpecificAlgorithmConfig : public ConfigLib::ConfigReader 
+class SpecificAlgorithmConfig : public ConfigLib::ConfigReader<SpecificAlgorithmConfig>
 {
 public:
     SpecificAlgorithmConfig() 
     {
-        std::cout << "SpecificAlgorithmConfig constructor started" << std::endl;
-		initialize();
-        std::cout << "SpecificAlgorithmConfig constructor finished" << std::endl;
+        std::cout << "SpecificAlgorithmConfig called" << std::endl;
     }
 
-    std::string getConfigFilePath() const override {
+    std::string getConfigFilePath() const 
+    {
         std::cout << "Getting config file path" << std::endl;
         return "specific_algorithm_config.ini";
     }
 
-    std::vector<ConfigLib::ConfigGen::ConfigSection> getConfigSections() const override 
+    std::vector<ConfigLib::ConfigGen::ConfigSection> getConfigSections() const 
     {
         static const ValidationRules::BetweenValues between0And100(0, 100);
         return {
@@ -149,18 +148,19 @@ struct Color : public ConfigLib::ConfigType<Color>
 	//all 3 methods, so we dont get compile time errors...
 };
 
-struct ColorConfigIniClass : public ConfigLib::ConfigReader
+struct ColorConfigIniClass : public ConfigLib::ConfigReader<ColorConfigIniClass>
 {
 	ColorConfigIniClass()
 	{
-		initialize(); // future work to make ConfigReader CRTP, then it can call initialize...
+        std::cout << "ColorConfigIniClass called" << std::endl;
 	}
 	
-    std::string getConfigFilePath() const override {
+    std::string getConfigFilePath() const  
+    {
         return "color_config_v1.ini";
     }
     
-    std::vector<ConfigLib::ConfigGen::ConfigSection> getConfigSections() const override
+    std::vector<ConfigLib::ConfigGen::ConfigSection> getConfigSections() const
     {
 		return {
 			{ 

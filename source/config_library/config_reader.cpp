@@ -135,17 +135,50 @@ namespace ConfigLib
     std::unordered_map<std::string, std::shared_ptr<ConfigValue>>& ConfigSection::getValues() {
         return values;
     }
+    
+    static void generateConfigFile(
+		const std::string& filePath,
+		const std::vector<ConfigGen::ConfigSection>& configSections)
+	{
+		std::ifstream file(filePath);
+		
+		// TODO (IHT): Update to boost::filesystem::exists(filePath)
+		if (file.is_open()) {
+			std::cout << "Configuration file already exists. Skipping generation." << std::endl;
+			return;
+		}
 	
-	void ConfigReader::initialize() {
+		// runtime validation
+		if (!ConfigGen::validateConfig(configSections)) 
+		{
+			throw std::runtime_error("Invalid configuration detected at runtime");
+		}
+
+		std::string configContent = ConfigGen::generateConfig(configSections);
+	
+		std::ofstream configFile(filePath);
+		if (configFile.is_open()) 
+		{
+			configFile << configContent;
+			configFile.close();
+		} 
+		else 
+		{
+			throw std::runtime_error("Unable to open file for writing: " + filePath);
+		}
+	}
+								
+	
+	void ConfigReaderBase::initialize(
+				const std::string& filePath,
+				const std::vector<ConfigGen::ConfigSection>& configSections) 
+	{
 		std::cout << "ConfigReader::initialize started" << std::endl;
 		try 
 		{
-			std::cout << "Calling getConfigFilePath()" << std::endl;
-			filepath = getConfigFilePath();
+			this->filepath = filePath;
 			std::cout << "Config file path: " << filepath << std::endl;
 	
-			auto configSections = getConfigSections();
-			
             std::cout << "Validating configuration schema..." << std::endl;
             if (!ConfigGen::validateConfig(configSections)) 
             {
@@ -154,23 +187,23 @@ namespace ConfigLib
             std::cout << "Schema validation passed." << std::endl;
             
 			for (const auto& section : configSections) {
-				sections[section.name];  // Creates empty section
+				sections[section.name];  // intentionally creating empty sections
 			}
 	
-			// Check if the file exists, if not, generate it
+			// if the file doesnt exist, then generate it
 			std::ifstream file(filepath);
 			if (!file.is_open()) {
 				std::cout << "Config file not found. Generating new file." << std::endl;
-				generateConfigFile(*this);
+				generateConfigFile(filepath, configSections);
 			}
 			file.close();
 	
 			std::cout << "Calling loadConfig()" << std::endl;
-			loadConfig();
+			loadConfig(configSections);
 			std::cout << "Config loaded" << std::endl;
 			
 			std::cout << "Setting validation rules" << std::endl;
-			setValidationRules();
+			setValidationRules(configSections);
 			std::cout << "Validation rules set" << std::endl;
 		} 
 		catch (const std::exception& e) 
@@ -186,16 +219,16 @@ namespace ConfigLib
 		std::cout << "ConfigReader::initialize finished" << std::endl;
 	}	
 	
-	void ConfigReader::setValidationRule(const std::string& section, 
+	void ConfigReaderBase::setValidationRule(const std::string& section, 
 										 const std::string& key, 
 										 const ValidationRules::Rule* rule) 
 	{
         sections[section].setValidationRule(key, rule);
     }
 	
-	void ConfigReader::setValidationRules() 
+	void ConfigReaderBase::setValidationRules(
+			const std::vector<ConfigGen::ConfigSection>& configSections) 
 	{
-        auto configSections = getConfigSections();
         for (const auto& section : configSections) 
         {
             for (const auto& item : section.items) 
@@ -208,7 +241,8 @@ namespace ConfigLib
         }
     }
 	
-	void ConfigReader::loadConfig() 
+	void ConfigReaderBase::loadConfig(
+			const std::vector<ConfigGen::ConfigSection>& configSections) 
 	{
 		std::ifstream file(filepath);
 		if (!file.is_open()) 
@@ -247,7 +281,6 @@ namespace ConfigLib
 			
 			if(current_section.empty()) continue;
 			
-			auto configSections = getConfigSections();
 			for (const auto& section : configSections) 
 			{
 				if(section.name != current_section) continue;
@@ -257,7 +290,6 @@ namespace ConfigLib
 					if (item.name != key) continue;
 					try 
 					{
-						
 						auto& registry = TypeRegistry::instance();
 						auto parsedValue = registry.parseValue(item.type, value);
 						
@@ -286,7 +318,7 @@ namespace ConfigLib
 		}
 	}
     	
-	void ConfigReader::useDefaultValue(const std::string& section,
+	void ConfigReaderBase::useDefaultValue(const std::string& section,
 									   const std::string& key, 
 									   const ConfigGen::ConfigItem& item) 
 	{
@@ -304,7 +336,8 @@ namespace ConfigLib
         }
 	}
 	
-	void ConfigReader::saveConfig() const 
+	void ConfigReaderBase::saveConfig(
+			const std::vector<ConfigGen::ConfigSection>& configSections) const 
 	{
 		std::cout << "Saving the current configuration to: " << this->filepath<< std::endl;
 		std::ofstream file(filepath);
@@ -313,9 +346,8 @@ namespace ConfigLib
 			throw std::runtime_error("Unable to open file for writing: " + filepath);
 		}
 
-		auto default_configs_sections = getConfigSections();
 		file << "# Configuration file\n\n";
-		for (const auto& default_section : default_configs_sections) 
+		for (const auto& default_section : configSections) 
 		{
 			file << "[" << default_section.name << "]\n";
 			for (const auto& item : default_section.items) 
@@ -334,12 +366,11 @@ namespace ConfigLib
 			file << "\n";
 		}
 		
-		
 		file << instructions_in_INI_for_end_users;
 		std::cout << "Finished saving the current configuration to: " << this->filepath<< std::endl;
 	}
 	
-	std::string ConfigReader::trim(const std::string& str) 
+	std::string ConfigReaderBase::trim(const std::string& str) 
 	{
         const auto strBegin = str.find_first_not_of(" \t\r\n");
         if (strBegin == std::string::npos) return "";
@@ -348,41 +379,7 @@ namespace ConfigLib
         return str.substr(strBegin, strRange);
 	}
 	
-	void generateConfigFile(const ConfigReader& reader) 
-	{
-		std::string filePath = reader.getConfigFilePath();
-		std::ifstream file(filePath);
-		
-		// TODO (IHT): Update to boost::filesystem::exists(filePath)
-		if (file.is_open()) {
-			std::cout << "Configuration file already exists. Skipping generation." << std::endl;
-			return;
-		}
-		
-		auto sections = reader.getConfigSections();
-	
-		// Perform runtime validation
-		if (!ConfigGen::validateConfig(sections)) 
-		{
-			throw std::runtime_error("Invalid configuration detected at runtime");
-		}
-		
-		// Generate the configuration content
-		std::string configContent = ConfigGen::generateConfig(sections);
-	
-		std::ofstream configFile(filePath);
-		if (configFile.is_open()) 
-		{
-			configFile << configContent;
-			configFile.close();
-		} 
-		else 
-		{
-			throw std::runtime_error("Unable to open file for writing: " + filePath);
-		}
-	}
-	
-	// Compile-time check
+	// compile-time check
 	static_assert(ConfigGen::validateConfigStructure(), 
 		"Invalid configuration structure detected at compile-time");
 	
