@@ -73,13 +73,13 @@ std::shared_ptr<ConfigValue> TypeRegistry::createTypedValue(const T& value)
 	return std::make_shared<TypedConfigValue<T>>(value);
 }
 
-class ConfigSection {
+class ConfigSectionStore {
 public:
 
 	template<typename T>
 	void setValue(const std::string& key, const T& value) 
 	{
-		std::cout << "ConfigSection::setValue called for key: " << key 
+		std::cout << "ConfigSectionStore::setValue called for key: " << key 
 				  << " with type: " << typeid(T).name() << std::endl;
 		try 
 		{
@@ -99,12 +99,12 @@ public:
 		} 
 		catch (const std::exception& e) 
 		{
-			auto error_string = std::string("Exception in ConfigSection::setValue: ") + e.what();
+			auto error_string = std::string("Exception in ConfigSectionStore::setValue: ") + e.what();
 			throw std::runtime_error(error_string);
 		} 
 		catch (...) 
 		{
-			auto error_string = std::string("Unknown exception in ConfigSection::setValue");
+			auto error_string = std::string("Unknown exception in ConfigSectionStore::setValue");
 			throw std::runtime_error(error_string);
 		}
 	}
@@ -112,13 +112,13 @@ public:
     template<typename T>
 	T getValue(const std::string& key) const 
 	{
-		std::cout << "ConfigSection::getValue called for key: " << key 
+		std::cout << "ConfigSectionStore::getValue called for key: " << key 
 				  << " with expected type: " << typeid(T).name() << std::endl;
 		
 		auto it = values.find(key);
 		if (it != values.end()) 
 		{
-			std::cout << "Key found in ConfigSection" << std::endl;
+			std::cout << "Key found in ConfigSectionStore" << std::endl;
 			auto typed_value = std::dynamic_pointer_cast<TypedConfigValue<T>>(it->second);
 			if (typed_value) 
 			{
@@ -134,7 +134,7 @@ public:
 		} 
 		else 
 		{
-			std::cout << "Key not found in ConfigSection" << std::endl;
+			std::cout << "Key not found in ConfigSectionStore" << std::endl;
 		}
 		throw std::runtime_error("Key not found or type mismatch: " + key);
 	}
@@ -184,7 +184,7 @@ public:
 
     void saveConfig(const std::vector<ConfigGen::ConfigSection>& configSections) const;
     
-    const std::unordered_map<std::string, ConfigSection>& getSections() const { return sections; }
+    const std::unordered_map<std::string, ConfigSectionStore>& getSections() const { return sections; }
     
 protected:
 	void initialize(const std::string& filePath,
@@ -193,7 +193,7 @@ protected:
     void setValidationRule(const std::string& section, const std::string& key, const ValidationRules::Rule* rule);
     
     std::string filepath;
-    std::unordered_map<std::string, ConfigSection> sections;
+    std::unordered_map<std::string, ConfigSectionStore> sections;
 	
 private:
     void loadConfig(const std::vector<ConfigGen::ConfigSection>& configSections);
