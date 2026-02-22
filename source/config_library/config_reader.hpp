@@ -53,20 +53,26 @@ public:
 		itemDescription,
 		rule){};
    
-   template<typename T>
+   template<typename T, typename U>
    static ConfigItem make(const std::string& itemName,
-                          const T& defaultVal,
+                          U&& defaultVal,
                           const std::string& itemDescription,
                           const ValidationRules::Rule* rule = nullptr)
    {
-       return ConfigItem(
+		/* brace init with a lambda forces a compile error on narrowing.
+		e.g., make<int>("x", 1.3, ...) fails on check({...}) because cannot narrow double to int.
+		* */
+		T validated{ std::forward<U>(defaultVal) };
+		(void)validated;
+	   
+		return ConfigItem(
 		   ForcePrivateConstructorToBeCalled{},
-           itemName,
-           TypeParser<T>::typeName(),
-           TypeParser<T>::toString(defaultVal),
-           itemDescription,
-           rule
-       );
+		   itemName,
+		   TypeParser<T>::typeName(),
+		   TypeParser<T>::toString(defaultVal),
+		   itemDescription,
+		   rule
+		);
    }
    
    template<typename T>

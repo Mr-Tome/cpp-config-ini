@@ -26,7 +26,7 @@ public:
                 "ABT",
                 {
                     {"kor", -10.0, "ABT kor value", &ValidationRules::greaterThanZero},
-                    ConfigLib::ConfigGen::ConfigItem::make<int>("koh", 1.3, "ABT koh value", nullptr) //TODO (IHT: 2026.02.22): the compiler provides no warning unless -wConversions is on. can i do a static_assert?
+                    ConfigLib::ConfigGen::ConfigItem::make<int>("koh", 1, "ABT koh value", nullptr)
                 }
             },
             {
