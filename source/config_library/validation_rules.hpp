@@ -4,9 +4,10 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace ConfigLib {
-    class ConfigValue; // fwd decl
+    class ConfigValue;
 }
 namespace ValidationRules 
 {
@@ -55,8 +56,8 @@ namespace ValidationRules
 	extern const GreaterThanOrEqualToZero greaterThanOrEqualToZero;
 	
 	// functions for "core" supported rules with parameters
-	Rule* betweenValues(double min, double max);
-    Rule* inList(const std::vector<std::string>& validValues);
+	std::unique_ptr<Rule> betweenValues(double min, double max);
+    std::unique_ptr<Rule> inList(const std::vector<std::string>& validValues);
 
 } // namespace ValidationRules
 
