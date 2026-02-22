@@ -8,30 +8,35 @@
 
 namespace ConfigLib {
     class ConfigValue;
+    class NumericConfigValue;
 }
 namespace ValidationRules 
 {
 
-	class Rule {
+	class Rule 
+	{
     public:
         virtual ~Rule() {}
         virtual bool operator()(const ConfigLib::ConfigValue& value) const = 0;
         virtual std::string toString() const = 0;
     };
 	
-	class GreaterThanZero : public Rule {
+	class GreaterThanZero : public Rule 
+	{
     public:
         bool operator()(const ConfigLib::ConfigValue& value) const override;
         std::string toString() const override { return "Must be greater than zero"; }
     };
 	
-	class GreaterThanOrEqualToZero : public Rule {
+	class GreaterThanOrEqualToZero : public Rule 
+	{
 	public:
 		bool operator()(const ConfigLib::ConfigValue& value) const override;
 		std::string toString() const override { return "Must be greater than or equal to zero"; }
 	};
 	
-	class BetweenValues : public Rule {
+	class BetweenValues : public Rule 
+	{
 	public:
 		BetweenValues(double min, double max) : min_(min), max_(max) {}
 		bool operator()(const ConfigLib::ConfigValue& value) const override;
@@ -55,7 +60,14 @@ namespace ValidationRules
 	extern const GreaterThanZero greaterThanZero;
 	extern const GreaterThanOrEqualToZero greaterThanOrEqualToZero;
 	
-	// functions for "core" supported rules with parameters
+	/* factory functions for "core" supported rules with parameters
+	 * The caller is responsible for keeping the rule alive for the lifetime 
+	 * of any and all ConfigItems that use the validation rule 
+	 * 
+	 * e.g.,
+	 * static const auto between0And100 = ValidationRules::betweenValues(0, 100);
+	 * return {{ "Section", { {"key", "double", "1.0", "desc", between0And100.get()} }}};
+	 * */
 	std::unique_ptr<Rule> betweenValues(double min, double max);
     std::unique_ptr<Rule> inList(const std::vector<std::string>& validValues);
 

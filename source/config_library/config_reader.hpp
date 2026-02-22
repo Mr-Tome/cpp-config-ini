@@ -43,22 +43,50 @@ public:
 	virtual std::shared_ptr<ConfigValue> clone() const = 0;
 };
 
-template<typename T>
+class NumericConfigValue : public ConfigValue
+{
+public:
+	virtual long double toLongDouble() const = 0;
+};
+
+//specialization used for non-numeric tpyes, like strings, Color, etc....
+template<typename T, typename NotEnabledDummyParameter = void>
 class TypedConfigValue : public ConfigValue {
 public:
 	TypedConfigValue(const T& val) : value(val) {}
 	
 	const T& getValue() const {return value;}
-	
 	void setValue(const T& val) { value = val; }
 	
 	std::string toString() const override { return TypeParser<T>::toString(value);}
+	void fromString(const std::string& str) override {value = TypeParser<T>::fromString(str);}
 	
-	void fromString(const std::string& str) override {
-		value = TypeParser<T>::fromString(str);
+	std::shared_ptr<ConfigValue> clone() const override 
+	{
+		return std::make_shared<TypedConfigValue<T>>(value);
 	}
+
+private:
+	T value;
+};
+
+//specialization used for numeric types like doubles, ints, etc....
+template<typename T>
+class TypedConfigValue<T, typename std::enable_if<std::is_arithmetic<T>::value>::type> : public NumericConfigValue 
+{
+public:
+	TypedConfigValue(const T& val) : value(val) {}
 	
-	std::shared_ptr<ConfigValue> clone() const override {
+	const T& getValue() const {return value;}
+	void setValue(const T& val) { value = val; }
+	
+	long double toLongDouble() const override {return static_cast<long double>(value);}
+	
+	std::string toString() const override { return TypeParser<T>::toString(value);}
+	void fromString(const std::string& str) override {value = TypeParser<T>::fromString(str);}
+	
+	std::shared_ptr<ConfigValue> clone() const override 
+	{
 		return std::make_shared<TypedConfigValue<T>>(value);
 	}
 
