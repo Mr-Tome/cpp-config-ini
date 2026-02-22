@@ -286,7 +286,6 @@ private:
     void loadConfig(const std::vector<ConfigGen::ConfigSection>& configSections);
     void setValidationRules(const std::vector<ConfigGen::ConfigSection>& configSections);
     void useDefaultValue(const std::string& section, const std::string& key, const ConfigGen::ConfigItem& item);
-	static std::string trim(const std::string& str);
 };
 
 //only thing this should be doing is calling derived class initialize and saveConfig

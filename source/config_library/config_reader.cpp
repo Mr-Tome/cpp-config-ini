@@ -1,11 +1,11 @@
-#include "config_reader.hpp"
 #include <fstream>
 #include <sstream>
 #include <typeinfo>
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
-
+#include "config_reader.hpp"
+#include "config_lib_internal_utility.hpp"
 
 namespace ConfigLib 
 {
@@ -268,7 +268,7 @@ namespace ConfigLib
 				
 		while (std::getline(file, line)) 
 		{
-			line = trim(line);
+			line = ConfigLib::Internal::trim(line);
 			if (line.empty() || line[0] == '#') continue;
 
 			if (line[0] == '[' && line.back() == ']') 
@@ -281,7 +281,7 @@ namespace ConfigLib
 			
 			if(pos == std::string::npos) continue;
 			
-			std::string key = trim(line.substr(0, pos));
+			std::string key = ConfigLib::Internal::trim(line.substr(0, pos));
 			std::string value = line.substr(pos + 1);
 			
 			// remove the comments from the value
@@ -290,7 +290,7 @@ namespace ConfigLib
 			{
 				value = value.substr(0, commentPos);
 			}
-			value = trim(value);
+			value = ConfigLib::Internal::trim(value);
 			
 			if(current_section.empty()) continue;
 			
@@ -377,15 +377,6 @@ namespace ConfigLib
 		
 		file << instructions_in_INI_for_end_users;
 		std::cout << "Finished saving the current configuration to: " << this->filepath<< std::endl;
-	}
-	
-	std::string ConfigReaderBase::trim(const std::string& str) 
-	{
-        const auto strBegin = str.find_first_not_of(" \t\r\n");
-        if (strBegin == std::string::npos) return "";
-        const auto strEnd = str.find_last_not_of(" \t\r\n");
-        const auto strRange = strEnd - strBegin + 1;
-        return str.substr(strBegin, strRange);
 	}
 	
 	// compile-time check

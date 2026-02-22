@@ -1,25 +1,12 @@
-#include "type_parser.hpp"
-#include "config_reader.hpp"
 #include <sstream>
 #include <algorithm>
 #include <stdexcept>
+#include "type_parser.hpp"
+#include "config_reader.hpp"
+#include "config_lib_internal_utility.hpp"
 
 namespace ConfigLib 
-{
-    
-    // helper function for trimming strings
-    namespace 
-    {
-        std::string trim(const std::string& str) 
-        {
-            const auto strBegin = str.find_first_not_of(" \t\r\n");
-            if (strBegin == std::string::npos) return "";
-            const auto strEnd = str.find_last_not_of(" \t\r\n");
-            const auto strRange = strEnd - strBegin + 1;
-            return str.substr(strBegin, strRange);
-        }
-    }
-    
+{    
     // library-provided / built-in Type Parser Specializations 
     template<>
 	int TypeParser<int>::fromString(const std::string& str) 
@@ -399,7 +386,7 @@ namespace ConfigLib
 		
 		while (std::getline(iss, token, ',')) 
 		{
-			token = trim(token);
+			token = ConfigLib::Internal::trim(token);
 			if (token.empty()) continue;
 			
 			try 
@@ -450,7 +437,7 @@ namespace ConfigLib
 		
 		while (std::getline(iss, token, ',')) 
 		{
-			token = trim(token);
+			token = ConfigLib::Internal::trim(token);
 			if (token.empty()) continue;
 			
 			try 
@@ -501,7 +488,7 @@ namespace ConfigLib
 		
 		while (std::getline(iss, token, ',')) 
 		{
-			token = trim(token);
+			token = ConfigLib::Internal::trim(token);
 			if (!token.empty()) 
 			{
 				result.push_back(token);
