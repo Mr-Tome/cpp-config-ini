@@ -15,13 +15,66 @@ namespace ConfigLib
 {
 namespace ConfigGen 
 {
-struct ConfigItem 
+class ConfigItem 
 {
+private:
+	//all future constructor paths should come through here so we can avoid the stringly typed members
+	struct ForcePrivateConstructorToBeCalled{};
+	ConfigItem(
+		ForcePrivateConstructorToBeCalled,
+		const std::string& itemName,
+		const std::string& itemType, 
+		const std::string& itemDefault,
+		const std::string& itemDescription,
+		const ValidationRules::Rule* rule)
+	:	name(itemName),
+		type(itemType),
+		defaultValue(itemDefault),
+		description(itemDescription),
+		validationRule(rule){};
+public:
    const std::string name;
    const std::string type;
    const std::string defaultValue;
    const std::string description;
    const ValidationRules::Rule* validationRule;
+   
+   //replacing the default stringly typed {} initializer
+   ConfigItem(  const std::string& itemName,
+				const std::string& itemType,
+				const std::string& itemDefaultValue,
+				const std::string& itemDescription,
+				const ValidationRules::Rule* rule)
+	: ConfigItem(
+		ForcePrivateConstructorToBeCalled{},
+		itemName,
+		itemType,
+		itemDefaultValue,
+		itemDescription,
+		rule){};
+   
+   template<typename T>
+   static ConfigItem make(const std::string& itemName,
+                          const T& defaultVal,
+                          const std::string& itemDescription,
+                          const ValidationRules::Rule* rule = nullptr)
+   {
+       return ConfigItem(
+		   ForcePrivateConstructorToBeCalled{},
+           itemName,
+           TypeParser<T>::typeName(),
+           TypeParser<T>::toString(defaultVal),
+           itemDescription,
+           rule
+       );
+   }
+   
+   template<typename T>
+   ConfigItem(  const std::string& itemName,
+				const T& itemDefaultValue,
+				const std::string& itemDescription,
+				const ValidationRules::Rule* rule)
+	: ConfigItem(this->make<T>(itemName, itemDefaultValue,itemDescription,rule)){};   
 };
 
 struct ConfigSection 
