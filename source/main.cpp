@@ -1,8 +1,8 @@
-#include "config_library/config_reader.hpp"
-#include "config_library/validation_rules.hpp"
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include "config_library/ini_config_reader/ini_config_reader.hpp"
+#include "config_library/common/validation_rules.hpp"
 
 class SpecificAlgorithmConfig : public ConfigLib::ConfigReader<SpecificAlgorithmConfig>
 {
@@ -18,7 +18,7 @@ public:
         return "specific_algorithm_config.ini";
     }
 
-    std::vector<ConfigLib::ConfigGen::ConfigSection> getConfigSections() const 
+    std::vector<ConfigLib::ConfigSection> getConfigSections() const 
     {
         static const ValidationRules::BetweenValues between0And100(0, 100);
         return {
@@ -26,7 +26,7 @@ public:
                 "ABT",
                 {
                     {"kor", -10.0, "ABT kor value", &ValidationRules::greaterThanZero},
-                    ConfigLib::ConfigGen::ConfigItem::make<int>("koh", 1, "ABT koh value", nullptr)
+                    ConfigLib::ConfigItem::make<int>("koh", 1, "ABT koh value", nullptr)
                 }
             },
             {
@@ -160,7 +160,7 @@ struct ColorConfigIniClass : public ConfigLib::ConfigReader<ColorConfigIniClass>
         return "color_config_v1.ini";
     }
     
-    std::vector<ConfigLib::ConfigGen::ConfigSection> getConfigSections() const
+    std::vector<ConfigLib::ConfigSection> getConfigSections() const
     {
 		return {
 			{ 

@@ -1,10 +1,10 @@
-#include "config_library/config_reader.hpp"
-#include "config_library/validation_rules.hpp"
 #include <iostream>
 #include <vector>
 #include <random>
 #include <cmath>
 #include <numeric>
+#include "config_library/ini_config_reader/ini_config_reader.hpp"
+#include "config_library/common/validation_rules.hpp"
 
 class MonteCarloConfig : public ConfigLib::ConfigReader<MonteCarloConfig>
 {
@@ -19,7 +19,7 @@ public:
         return "monte_carlo_config.ini";
     }
 
-    std::vector<ConfigLib::ConfigGen::ConfigSection> getConfigSections() const 
+    std::vector<ConfigLib::ConfigSection> getConfigSections() const 
     {
         return {
             {

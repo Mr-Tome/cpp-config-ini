@@ -1,5 +1,4 @@
-#ifndef VALIDATION_RULES_H
-#define VALIDATION_RULES_H
+#pragma once
 
 #include <functional>
 #include <string>
@@ -72,5 +71,3 @@ namespace ValidationRules
     std::unique_ptr<Rule> inList(const std::vector<std::string>& validValues);
 
 } // namespace ValidationRules
-
-#endif
