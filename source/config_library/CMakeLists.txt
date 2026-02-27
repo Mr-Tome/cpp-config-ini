@@ -9,6 +9,8 @@ add_library(source_directory_lib STATIC
 	common/type_parser.cpp
 	ini_config_reader/ini_config_reader.cpp
 	ini_config_reader/ini_config_reader.hpp
+	ini_config_reader/cli_config_reader.cpp
+	ini_config_reader/cli_config_reader.hpp
 )
 
 target_include_directories(source_directory_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
