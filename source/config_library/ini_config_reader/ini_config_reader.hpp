@@ -51,9 +51,10 @@ public:
     
 protected:
 	void initialize(const std::string& filePath,
-					const std::vector<ConfigSection>& configSections);
-
-	//TODO (IHT 20260227): Determine how this and the function above should be handled.
+					const std::vector<ConfigSection>& configSections); //this is a INI/Persistence only concern.
+	//TODO (IHT 20260228): Determine how this and the function above should be handled. this is a INI/Persistence only concern.
+	void assertNoVolatileFieldsInINIOnlyReader(const std::vector<ConfigSection>& configSections) const;
+	//TODO (IHT 20260227): Determine how this and the function above should be handled. this is a CLI conly concern.
 	void initializeForCLI(const std::vector<ConfigSection>& configSections);
     
     void setValidationRule(const std::string& section, const std::string& key, const ValidationRules::Rule* rule);

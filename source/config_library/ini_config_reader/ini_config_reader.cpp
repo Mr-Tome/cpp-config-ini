@@ -164,7 +164,18 @@ void ConfigReaderBase::initialize(
 	}
 	std::cout << "ConfigReader::initialize finished" << std::endl;
 }	
-
+void ConfigReaderBase::assertNoVolatileFieldsInINIOnlyReader(const std::vector<ConfigSection>& configSections) const
+{
+	for (const auto& section : configSections)
+		for (const auto& item : section.items)
+			if (item.persistence == Persistence::Volatile)
+				throw std::runtime_error(
+					"ConfigItem '" + section.name + "." + item.name + "' is marked "
+					"Persistence::Volatile but ConfigLib::CLI is not in your ConfigReader "
+					"type list. Volatile fields must be supplied via CLI every run — they "
+					"have no meaning without it. Add ConfigLib::CLI or change the field "
+					"to Persistence::Normal.");
+}
 	
 void ConfigReaderBase::initializeForCLI(
 			const std::vector<ConfigSection>& configSections) 
