@@ -6,6 +6,12 @@
 
 namespace ConfigLib 
 {
+//intended to control the visibility/access in various I/O streams
+enum class Persistence
+{
+	Normal,
+	Volatile
+};
 	
 class ConfigItem 
 {
@@ -18,38 +24,45 @@ private:
 		const std::string& itemType, 
 		const std::string& itemDefault,
 		const std::string& itemDescription,
-		const ValidationRules::Rule* rule)
+		const ValidationRules::Rule* rule,
+		Persistence p)
 	:	name(itemName),
 		type(itemType),
 		defaultValue(itemDefault),
 		description(itemDescription),
-		validationRule(rule){};
+		validationRule(rule),
+		persistence(p){};
+		
 public:
    const std::string name;
    const std::string type;
    const std::string defaultValue;
    const std::string description;
    const ValidationRules::Rule* validationRule;
+   const Persistence persistence;
    
    //replacing the default stringly typed {} initializer
    ConfigItem(  const std::string& itemName,
 				const std::string& itemType,
 				const std::string& itemDefaultValue,
 				const std::string& itemDescription,
-				const ValidationRules::Rule* rule)
+				const ValidationRules::Rule* rule,
+				Persistence p = Persistence::Normal)
 	: ConfigItem(
 		ForcePrivateConstructorToBeCalled{},
 		itemName,
 		itemType,
 		itemDefaultValue,
 		itemDescription,
-		rule){};
+		rule,
+		p){};
    
    template<typename T, typename U>
    static ConfigItem make(const std::string& itemName,
                           U&& defaultVal,
                           const std::string& itemDescription,
-                          const ValidationRules::Rule* rule = nullptr)
+                          const ValidationRules::Rule* rule = nullptr,
+                          Persistence p = Persistence::Normal)
    {
 		/* brace init with a lambda forces a compile error on narrowing.
 		e.g., make<int>("x", 1.3, ...) fails on check({...}) because cannot narrow double to int.
@@ -63,7 +76,8 @@ public:
 		   TypeParser<T>::typeName(),
 		   TypeParser<T>::toString(defaultVal),
 		   itemDescription,
-		   rule
+		   rule, 
+		   p
 		);
    }
    
@@ -71,8 +85,9 @@ public:
    ConfigItem(  const std::string& itemName,
 				const T& itemDefaultValue,
 				const std::string& itemDescription,
-				const ValidationRules::Rule* rule)
-	: ConfigItem(this->make<T>(itemName, itemDefaultValue,itemDescription,rule)){};   
+				const ValidationRules::Rule* rule,
+				Persistence p = Persistence::Normal)
+	: ConfigItem(this->make<T>(itemName, itemDefaultValue,itemDescription,rule,p)){};   
 };
 
 struct ConfigSection 
