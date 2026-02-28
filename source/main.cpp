@@ -4,6 +4,7 @@
 #include "config_library/ini_config_reader/cli_config_reader.hpp"
 #include "config_library/common/validation_rules.hpp"
 #include "MonteCarloConfig.hpp"
+#include "SimpleCLI.hpp"
 
 class SpecificAlgorithmConfig : public ConfigLib::ConfigReader<SpecificAlgorithmConfig, ConfigLib::INI>
 {
@@ -235,6 +236,8 @@ int main() {
     test_colors();
     
     do_monte_carlo();
+    
+    auto test = SimpleCLI();
 	
     std::cout << "Program finished" << std::endl;
     std::cout.flush(); 

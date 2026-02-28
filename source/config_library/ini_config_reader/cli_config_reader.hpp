@@ -25,7 +25,7 @@ public:
 	NoPersistenceReader()
 	{
 		Derived& d = static_cast<Derived&>(*this);
-		initializeFromDefaults(d.getConfigSections());
+		initializeForCLI(d.getConfigSections());
 	}
 };
 
