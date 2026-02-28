@@ -33,7 +33,8 @@ public:
                     Item::make<double>("time_horizon", 1.0, "Time horizon in years", &ValidationRules::greaterThanZero),
                     Item::make<int>("num_steps", 252, "Number of time steps", &ValidationRules::greaterThanZero),
                     Item::make<double>("risk_free_rate", 0.05, "Risk-free interest rate", &ValidationRules::greaterThanOrEqualToZero),
-                    Item::make<double>("volatility", 0.2, "Asset price volatility", &ValidationRules::greaterThanZero)
+                    Item::make<double>("volatility", 0.2, "Asset price volatility", &ValidationRules::greaterThanZero),
+                    Item::make<int>("random_seed", 0, "RNG seed", nullptr, P::Volatile)
                 }
             }
         };
