@@ -22,16 +22,18 @@ public:
 
     std::vector<ConfigLib::ConfigSection> getConfigSections() const 
     {
+		using Item = ConfigLib::ConfigItem;
+		using P = ConfigLib::Persistence;
         return {
             {
                 "Simulation",
                 {
-                    {"num_simulations", "int", "10000", "Number of Monte Carlo simulations", &ValidationRules::greaterThanZero},
-                    {"initial_price", "double", "100.0", "Initial asset price", &ValidationRules::greaterThanZero},
-                    {"time_horizon", "double", "1.0", "Time horizon in years", &ValidationRules::greaterThanZero},
-                    {"num_steps", "int", "252", "Number of time steps", &ValidationRules::greaterThanZero},
-                    {"risk_free_rate", "double", "0.05", "Risk-free interest rate", &ValidationRules::greaterThanOrEqualToZero},
-                    {"volatility", "double", "0.2", "Asset price volatility", &ValidationRules::greaterThanZero}
+                    Item::make<int>("num_simulations", 10000, "Number of Monte Carlo simulations", &ValidationRules::greaterThanZero),
+                    Item::make<double>("initial_price",100.0, "Initial asset price", &ValidationRules::greaterThanZero),
+                    Item::make<double>("time_horizon", 1.0, "Time horizon in years", &ValidationRules::greaterThanZero),
+                    Item::make<int>("num_steps", 252, "Number of time steps", &ValidationRules::greaterThanZero),
+                    Item::make<double>("risk_free_rate", 0.05, "Risk-free interest rate", &ValidationRules::greaterThanOrEqualToZero),
+                    Item::make<double>("volatility", 0.2, "Asset price volatility", &ValidationRules::greaterThanZero)
                 }
             }
         };
