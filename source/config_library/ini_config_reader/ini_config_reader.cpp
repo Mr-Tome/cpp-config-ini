@@ -165,6 +165,45 @@ void ConfigReaderBase::initialize(
 	std::cout << "ConfigReader::initialize finished" << std::endl;
 }	
 
+	
+void ConfigReaderBase::initializeForCLI(
+			const std::vector<ConfigSection>& configSections) 
+{
+	std::cout << "ConfigReader::initializeForCLI started" << std::endl;
+	try 
+	{
+		std::cout << "Validating configuration schema..." << std::endl;
+		if (!validateConfig(configSections)) 
+		{
+			throw std::runtime_error("Invalid configuration schema detected. Check error messages above.");
+		}
+		std::cout << "Schema validation passed." << std::endl;
+		
+		for (const auto& section : configSections) {
+			sections[section.name];  // intentionally creating empty sections
+			for (const auto& item : section.items)
+            {
+                useDefaultValue(section.name, item.name, item);
+            }
+		}
+		
+		std::cout << "Setting validation rules" << std::endl;
+		setValidationRules(configSections);
+		std::cout << "Validation rules set" << std::endl;
+	} 
+	catch (const std::exception& e) 
+	{
+		auto error_string = std::string("Exception in ConfigReader::initializeForCLI: ") + e.what();
+		throw std::runtime_error(error_string);
+	} 
+	catch (...) 
+	{
+		auto error_string = std::string("Unknown exception in ConfigReader::initializeForCLI");
+		throw std::runtime_error(error_string);
+	}
+	std::cout << "ConfigReader::initializeForCLI finished" << std::endl;
+}	
+
 void ConfigReaderBase::setValidationRule(const std::string& section, 
 									 const std::string& key, 
 									 const ValidationRules::Rule* rule) 

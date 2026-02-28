@@ -6,6 +6,7 @@
 
 namespace ConfigLib 
 {
+	
 class ConfigItem 
 {
 private:

@@ -1,10 +1,10 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
-#include "config_library/ini_config_reader/ini_config_reader.hpp"
+#include "config_library/ini_config_reader/cli_config_reader.hpp"
 #include "config_library/common/validation_rules.hpp"
 
-class SpecificAlgorithmConfig : public ConfigLib::ConfigReader<SpecificAlgorithmConfig>
+class SpecificAlgorithmConfig : public ConfigLib::ConfigReader<SpecificAlgorithmConfig, ConfigLib::INI>
 {
 public:
     SpecificAlgorithmConfig() 
@@ -148,7 +148,7 @@ struct Color : public ConfigLib::ConfigType<Color>
 	//all 3 methods, so we dont get compile time errors...
 };
 
-struct ColorConfigIniClass : public ConfigLib::ConfigReader<ColorConfigIniClass>
+struct ColorConfigIniClass : public ConfigLib::ConfigReader<ColorConfigIniClass, ConfigLib::INI>
 {
 	ColorConfigIniClass()
 	{

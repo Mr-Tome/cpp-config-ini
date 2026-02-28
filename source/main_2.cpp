@@ -6,7 +6,7 @@
 #include "config_library/ini_config_reader/ini_config_reader.hpp"
 #include "config_library/common/validation_rules.hpp"
 
-class MonteCarloConfig : public ConfigLib::ConfigReader<MonteCarloConfig>
+class MonteCarloConfig : public ConfigLib::ConfigReader<MonteCarloConfig, ConfigLib::INI, ConfigLib::CLI>
 {
 public:
     MonteCarloConfig() 

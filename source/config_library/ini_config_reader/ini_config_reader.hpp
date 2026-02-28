@@ -6,7 +6,7 @@
 #include <vector>
 #include <sstream>
 #include <iostream>
-#include "../common/config_value.hpp" // TODO: I think this is only needed for the ConfigSectionStore...seems like an odd place for a store..
+#include "../common/config_value.hpp" // TODO (IHT 20260223): I think this is only needed for the ConfigSectionStore...seems like an odd place for a store..
 #include "../common/config_schema.hpp"
 
 namespace ConfigLib 
@@ -52,6 +52,9 @@ public:
 protected:
 	void initialize(const std::string& filePath,
 					const std::vector<ConfigSection>& configSections);
+
+	//TODO (IHT 20260227): Determine how this and the function above should be handled.
+	void initializeForCLI(const std::vector<ConfigSection>& configSections);
     
     void setValidationRule(const std::string& section, const std::string& key, const ValidationRules::Rule* rule);
     
@@ -66,10 +69,10 @@ private:
 
 //only thing this should be doing is calling derived class initialize and saveConfig
 template<typename Derived>
-class ConfigReader : public ConfigReaderBase
+class INIConfigReader : public ConfigReaderBase
 {
 public:
-	ConfigReader()
+	INIConfigReader()
 	{
 		Derived& d = static_cast<Derived&>(*this);
 		initialize(d.getConfigFilePath(), d.getConfigSections());
