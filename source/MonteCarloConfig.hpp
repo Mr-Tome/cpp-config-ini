@@ -4,6 +4,7 @@
 #include <cmath>
 #include <numeric>
 #include "config_library/ini_config_reader/ini_config_reader.hpp"
+#include "config_library/ini_config_reader/cli_config_reader.hpp"
 #include "config_library/common/validation_rules.hpp"
 
 class MonteCarloConfig : public ConfigLib::ConfigReader<MonteCarloConfig, ConfigLib::INI, ConfigLib::CLI>
@@ -84,21 +85,3 @@ private:
     MonteCarloConfig config;
     mutable std::mt19937 rng;
 };
-
-int main() {
-    std::cout << "Monte Carlo Simulation started" << std::endl;
-    
-    try {
-        MonteCarloSimulation simulation;
-		
-        double result = simulation.runSimulation();
-
-        std::cout << "Simulation completed. Final result: " << result << std::endl;
-
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
-
-    std::cout << "Program finished" << std::endl;
-    return 0;
-}

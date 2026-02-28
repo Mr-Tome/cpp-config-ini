@@ -3,6 +3,7 @@
 #include <memory>
 #include "config_library/ini_config_reader/cli_config_reader.hpp"
 #include "config_library/common/validation_rules.hpp"
+#include "MonteCarloConfig.hpp"
 
 class SpecificAlgorithmConfig : public ConfigLib::ConfigReader<SpecificAlgorithmConfig, ConfigLib::INI>
 {
@@ -210,12 +211,30 @@ void test_colors()
 	
 	my_color_config.saveConfig();
 }
- 
+
+void do_monte_carlo()
+{
+	std::cout << "Monte Carlo Simulation started" << std::endl;
+    
+    try {
+        MonteCarloSimulation simulation;
+		
+        double result = simulation.runSimulation();
+
+        std::cout << "Simulation completed. Final result: " << result << std::endl;
+
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+}
+
 int main() {
     std::cout << "Program started" << std::endl;
     
     do_specific_algorithm_config();
     test_colors();
+    
+    do_monte_carlo();
 	
     std::cout << "Program finished" << std::endl;
     std::cout.flush(); 
