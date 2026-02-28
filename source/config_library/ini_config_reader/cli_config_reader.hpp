@@ -60,18 +60,5 @@ class ConfigReader :
         "Try: ConfigReader<MyConfig, ConfigLib::INI> "
         "or:  ConfigReader<MyConfig, ConfigLib::CLI> "
         "or:  ConfigReader<MyConfig, ConfigLib::INI, ConfigLib::CLI>");
-        
-	void checkVolatileFields(std::true_type) {}
-	void checkVolatileFields(std::false_type) 
-	{
-		const Derived& d = static_cast<const Derived&>(*this);
-		this->assertNoVolatileFieldsInINIOnlyReader(d.getConfigSections());
-	}
-
-public:
-	ConfigReader() 
-	{
-		checkVolatileFields(HasType<CLI, ConfigReaderTypes...>{});
-	}
 };
 } // namespace ConfigLib

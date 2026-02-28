@@ -76,6 +76,7 @@ public:
 	INIConfigReader()
 	{
 		Derived& d = static_cast<Derived&>(*this);
+		assertNoVolatileFieldsInINIOnlyReader(d.getConfigSections());
 		initialize(d.getConfigFilePath(), d.getConfigSections());
 	}
 	
