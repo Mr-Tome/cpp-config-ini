@@ -229,7 +229,7 @@ void do_monte_carlo()
     }
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     std::cout << "Program started" << std::endl;
     
     do_specific_algorithm_config();
@@ -237,7 +237,7 @@ int main() {
     
     do_monte_carlo();
     
-    auto test = SimpleCLI();
+    auto test = SimpleCLI(argc, argv);
 	
     std::cout << "Program finished" << std::endl;
     std::cout.flush(); 

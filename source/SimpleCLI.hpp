@@ -9,7 +9,7 @@
 class SimpleCLIConfig : public ConfigLib::ConfigReader<SimpleCLIConfig, ConfigLib::CLI>
 {
 public:
-	SimpleCLIConfig()
+	SimpleCLIConfig(int argc, char* argv[]): ConfigLib::ConfigReader<SimpleCLIConfig, ConfigLib::CLI>(argc, argv)
 	{
 		std::cout<<"SimpleCLI constructor called" << std::endl;
 	}
@@ -33,11 +33,26 @@ public:
 			}
 		};
 	}
+	
+	void printRawArgs()
+	{
+		std::cout << "------SimpleCLIConfig rawCLIArgs-----" << std::endl;
+		std::cout << "Number of Args: " << rawCLIArgs.size() <<std::endl;
+		std::cout << "values: " << std::endl;
+		for(const auto arg: rawCLIArgs)
+		{
+			std::cout << "------"<<arg<<"------"<<std::endl;
+		}
+	}
 };
 
 struct SimpleCLI
 {
-	SimpleCLI(){run_simple_cli_config();}
+	SimpleCLI(int argc, char* argv[]) : config(argc, argv)
+	{
+		run_simple_cli_config();
+		config.printRawArgs();
+	}
 	SimpleCLIConfig config;
 	void run_simple_cli_config()
 	{

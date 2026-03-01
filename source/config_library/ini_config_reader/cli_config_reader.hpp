@@ -27,6 +27,13 @@ public:
 		Derived& d = static_cast<Derived&>(*this);
 		initializeForCLI(d.getConfigSections());
 	}
+	
+	NoPersistenceReader(int argc, char* argv[])
+	{
+		Derived& d = static_cast<Derived&>(*this);
+		for(int i = 0; i < argc; ++i) rawCLIArgs.emplace_back(argv[i]);
+		initializeForCLI(d.getConfigSections());
+	}
 };
 
 // selects the persistence base from the type pack TODO (IHT 20260227): Introduce an XML/JSON in addition to INI)
@@ -40,8 +47,8 @@ template<typename Derived>
 struct ResolvePersistenceType<Derived, false>{using type = NoPersistenceReader<Derived>;};
 
 //wraps the CLI with the any features from the persistence layers.
-template<typename Derived, typename Base, typename... Types>
-struct AddFeatures {using type = Base;};
+template<typename Derived, typename ReaderBase, typename... Types>
+struct AddFeatures {using type = ReaderBase;};
 
 template<typename Derived, typename... ConfigReaderTypes>
 class ConfigReader : 
@@ -56,9 +63,27 @@ class ConfigReader :
 {
 	static_assert(HasType<INI, ConfigReaderTypes...>::value 
 				|| HasType<CLI, ConfigReaderTypes...>::value,
-        "ConfigReader requires at least one type. "
-        "Try: ConfigReader<MyConfig, ConfigLib::INI> "
-        "or:  ConfigReader<MyConfig, ConfigLib::CLI> "
-        "or:  ConfigReader<MyConfig, ConfigLib::INI, ConfigLib::CLI>");
+		"ConfigReader requires at least one type. "
+		"Try: ConfigReader<MyConfig, ConfigLib::INI> "
+		"or:  ConfigReader<MyConfig, ConfigLib::CLI> "
+		"or:  ConfigReader<MyConfig, ConfigLib::INI, ConfigLib::CLI>");
+    
+    using BaseReaderType = typename AddFeatures<
+				Derived,
+				typename ResolvePersistenceType<
+					Derived,
+					HasType<INI, ConfigReaderTypes...>::value
+				>::type,
+				ConfigReaderTypes...
+			>::type;
+public:
+	ConfigReader() {}
+	ConfigReader(int argc, char* argv[]) : BaseReaderType(argc, argv)
+	{
+		static_assert(HasType<CLI, ConfigReaderTypes...>::value,
+			"argc and argv constructor overload requires ConfigLib::CLI in the type pack."
+			"Try: ConfigReader<MyConfig, ConfigLib::CLI> "
+			"or:  ConfigReader<MyConfig, ConfigLib::INI, ConfigLib::CLI>");
+	}
 };
 } // namespace ConfigLib
