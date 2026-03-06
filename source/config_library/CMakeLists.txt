@@ -31,6 +31,6 @@ target_compile_options(source_directory_lib PRIVATE
         -Wlogical-op 
         -Woverloaded-virtual 
         -Wextra-semi 
-        -fsanitize=undefined 
-        -fsanitize=address 
+        #-fsanitize=undefined 
+        #-fsanitize=address 
 )

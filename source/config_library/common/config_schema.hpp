@@ -31,7 +31,7 @@ private:
 		defaultValue(itemDefault),
 		description(itemDescription),
 		validationRule(rule),
-		persistence(p){};
+		persistence(p){}
 		
 public:
    const std::string name;
@@ -55,7 +55,7 @@ public:
 		itemDefaultValue,
 		itemDescription,
 		rule,
-		p){};
+		p){}
    
    template<typename T, typename U>
    static ConfigItem make(const std::string& itemName,
