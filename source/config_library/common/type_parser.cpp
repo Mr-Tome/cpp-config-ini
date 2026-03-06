@@ -48,7 +48,7 @@ double TypeParser<double>::fromString(const std::string& str)
 	try 
 	{
 		size_t pos;
-		double value = std::stod(str, &pos);
+		auto value = std::stod(str, &pos);
 		if (pos != str.length()) 
 		{
 			throw std::invalid_argument("Extra characters after number");
@@ -85,7 +85,7 @@ long double TypeParser<long double>::fromString(const std::string& str)
 	try 
 	{
 		size_t pos;
-		double value = std::stold(str, &pos);
+		auto value = std::stold(str, &pos);
 		if (pos != str.length()) 
 		{
 			throw std::invalid_argument("Extra characters after number");
@@ -122,7 +122,7 @@ float TypeParser<float>::fromString(const std::string& str)
 	try 
 	{
 		size_t pos;
-		double value = std::stof(str, &pos);
+		auto value = std::stof(str, &pos);
 		if (pos != str.length()) 
 		{
 			throw std::invalid_argument("Extra characters after number");
@@ -159,7 +159,7 @@ long TypeParser<long>::fromString(const std::string& str)
 	try 
 	{
 		size_t pos;
-		int value = std::stol(str, &pos);
+		auto value = std::stol(str, &pos);
 		if (pos != str.length()) 
 		{
 			throw std::invalid_argument("Extra characters after number");
@@ -194,7 +194,7 @@ long long TypeParser<long long>::fromString(const std::string& str)
 	try 
 	{
 		size_t pos;
-		int value = std::stoll(str, &pos);
+		auto value = std::stoll(str, &pos);
 		if (pos != str.length()) 
 		{
 			throw std::invalid_argument("Extra characters after number");
@@ -229,7 +229,7 @@ unsigned int TypeParser<unsigned int>::fromString(const std::string& str)
 	try 
 	{
 		size_t pos;
-		int value = std::stoul(str, &pos);
+		auto value = static_cast<unsigned int>(std::stoul(str, &pos));
 		if (pos != str.length()) 
 		{
 			throw std::invalid_argument("Extra characters after number");
@@ -264,7 +264,7 @@ unsigned long TypeParser<unsigned long>::fromString(const std::string& str)
 	try 
 	{
 		size_t pos;
-		int value = std::stoul(str, &pos);
+		auto value = std::stoul(str, &pos);
 		if (pos != str.length()) 
 		{
 			throw std::invalid_argument("Extra characters after number");
@@ -300,7 +300,7 @@ unsigned long long TypeParser<unsigned long long>::fromString(const std::string&
 	try 
 	{
 		size_t pos;
-		int value = std::stoull(str, &pos);
+		auto value = std::stoull(str, &pos);
 		if (pos != str.length()) 
 		{
 			throw std::invalid_argument("Extra characters after number");
