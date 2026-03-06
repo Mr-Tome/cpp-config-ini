@@ -125,8 +125,8 @@ void do_specific_algorithm_config()
 struct Color : public ConfigLib::ConfigType<Color>
 {
 	int red, green, blue;
-	Color() : red(0), green(0),blue(0){};
-	Color(int r, int g, int b) : red(r), green(g), blue(b){}; 
+	Color() : red(0), green(0),blue(0){}
+	Color(int r, int g, int b) : red(r), green(g), blue(b){}
 	
 	
 	static const char* typeName() {return "Color";}
