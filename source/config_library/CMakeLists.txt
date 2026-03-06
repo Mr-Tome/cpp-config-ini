@@ -14,3 +14,13 @@ add_library(source_directory_lib STATIC
 )
 
 target_include_directories(source_directory_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_compile_options(source_directory_lib PRIVATE 
+        -Wall 
+        -Wextra 
+        -Wpedantic 
+        -Wshadow 
+        -Wconversion 
+        -Wnull-dereference 
+        -Werror
+)
