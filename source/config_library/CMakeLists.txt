@@ -23,4 +23,14 @@ target_compile_options(source_directory_lib PRIVATE
         -Wconversion 
         -Wnull-dereference 
         -Werror
+        -Wcast-align 
+        -Wunreachable-code 
+        -Wdeprecated 
+        -Wfloat-equal 
+        -Wformat=2 
+        -Wlogical-op 
+        -Woverloaded-virtual 
+        -Wextra-semi 
+        -fsanitize=undefined 
+        -fsanitize=address 
 )
