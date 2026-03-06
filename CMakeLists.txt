@@ -15,3 +15,13 @@ target_link_libraries(configs PRIVATE source_directory_lib)
 
 # Include the config_library headers
 target_include_directories(configs PRIVATE source)
+
+target_compile_options(configs PRIVATE 
+	-Wall 
+	-Wextra 
+	-Wpedantic 
+	-Wshadow 
+	-Wconversion 
+	-Wnull-dereference 
+	-Werror
+)
