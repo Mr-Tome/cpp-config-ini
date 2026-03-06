@@ -46,9 +46,40 @@ struct ResolvePersistenceType<Derived, true> {using type = INIConfigReader<Deriv
 template<typename Derived>
 struct ResolvePersistenceType<Derived, false>{using type = NoPersistenceReader<Derived>;};
 
-//wraps the CLI with the any features from the persistence layers.
-template<typename Derived, typename ReaderBase, typename... Types>
-struct AddFeatures {using type = ReaderBase;};
+//cli wrapper class. 
+template<typename Derived, typename Base>
+class CLIFeatureLayer : public Base
+{
+public:
+	CLIFeatureLayer() : Base()
+	{
+		std::cout << "CLIFeatureLayer default constructor called" << std::endl;
+	}
+	
+	CLIFeatureLayer(int argc, char* argv[]) : Base(argc, argv)
+	{
+		std::cout << "CLIFeatureLayer argc & argv constructor called" << std::endl;
+	}
+	
+};
+
+//no CLI found in the pack. no need for the cli wrapper class;
+template<typename Derived, typename Base, typename... Types>
+struct AddFeatures {using type = Base;};
+
+//cli is the next tpye in the pack, so lets wrap bBase with CLIFeatureLayer
+template<typename Derived, typename Base, typename... Rest>
+struct AddFeatures<Derived, Base, CLI, Rest...>
+{
+	using type = CLIFeatureLayer<Derived, Base>;
+};
+
+//CLI isnt next, so lets keep going through the pack to see if we can find.
+template<typename Derived, typename Base, typename Head, typename... Rest>
+struct AddFeatures<Derived, Base, Head, Rest...>
+{
+	using type = typename AddFeatures<Derived, Base, Rest...>::type;
+};
 
 template<typename Derived, typename... ConfigReaderTypes>
 class ConfigReader : 
