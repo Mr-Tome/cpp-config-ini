@@ -87,7 +87,7 @@ public:
 				const std::string& itemDescription,
 				const ValidationRules::Rule* rule,
 				Persistence p = Persistence::Normal)
-	: ConfigItem(this->make<T>(itemName, itemDefaultValue,itemDescription,rule,p)){};   
+	: ConfigItem(this->make<T>(itemName, itemDefaultValue,itemDescription,rule,p)){}
 };
 
 struct ConfigSection 

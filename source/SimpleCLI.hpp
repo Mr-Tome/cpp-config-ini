@@ -39,7 +39,7 @@ public:
 		std::cout << "------SimpleCLIConfig rawCLIArgs-----" << std::endl;
 		std::cout << "Number of Args: " << rawCLIArgs.size() <<std::endl;
 		std::cout << "values: " << std::endl;
-		for(const auto arg: rawCLIArgs)
+		for(const auto& arg: rawCLIArgs)
 		{
 			std::cout << "------"<<arg<<"------"<<std::endl;
 		}

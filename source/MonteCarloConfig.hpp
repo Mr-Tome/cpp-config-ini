@@ -23,7 +23,6 @@ public:
     std::vector<ConfigLib::ConfigSection> getConfigSections() const 
     {
 		using Item = ConfigLib::ConfigItem;
-		using P = ConfigLib::Persistence;
         return {
             {
                 "Simulation",
@@ -34,7 +33,6 @@ public:
                     Item::make<int>("num_steps", 252, "Number of time steps", &ValidationRules::greaterThanZero),
                     Item::make<double>("risk_free_rate", 0.05, "Risk-free interest rate", &ValidationRules::greaterThanOrEqualToZero),
                     Item::make<double>("volatility", 0.2, "Asset price volatility", &ValidationRules::greaterThanZero),
-                    //Item::make<int>("random_seed", 0, "RNG seed", nullptr, P::Volatile)
                 }
             }
         };
