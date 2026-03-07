@@ -3,6 +3,9 @@
 
 namespace ConfigLib
 {
+
+// current only used for CLI only persistence base. no file i/o
+// TODO (IHT 20260307: consider extending for jsons)	
 template<typename Derived>
 class NoPersistenceReader: public ConfigReaderBase
 {
@@ -22,6 +25,7 @@ public:
 };
 
 //cli wrapper class. 
+//Intended to be the place where different CLI features are introduced...
 template<typename Derived, typename Base>
 class CLIFeatureLayer : public Base
 {
