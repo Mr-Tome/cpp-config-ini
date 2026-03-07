@@ -3,7 +3,7 @@
 #include <random>
 #include <cmath>
 #include <numeric>
-#include "config_library/ini_config_reader/cli_config_reader.hpp"
+#include "config_library/config_reader/config_reader.hpp"
 #include "config_library/common/validation_rules.hpp"
 
 class SimpleCLIConfig : public ConfigLib::ConfigReader<SimpleCLIConfig, ConfigLib::CLI>
