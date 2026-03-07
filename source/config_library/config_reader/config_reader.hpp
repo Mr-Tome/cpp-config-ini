@@ -7,6 +7,7 @@ namespace ConfigLib
 	
 struct INI {};
 struct CLI {};
+struct JSON {}; //TODO (IHT 20260307)
 
 template<typename Tag, typename... Types>
 struct HasType : std::false_type {}; 
@@ -51,6 +52,12 @@ struct AddFeatures<Derived, Base, Head, Rest...>
 };
 
 
+/* this is the user facing class.
+// current iheritance chains for supported tags:
+* <INI>      ConfigReader --> INIConfigReader --> ConfigReaderBase
+* <CLI>      ConfigReader --> CLIFeatureLayer --> NoPersistenceReader --> ConfigReaderBase
+* <INI, CLI> ConfigReader --> CLIFeatureLayer --> INIConfigReader     --> ConfigReaderBase
+*/
 template<typename Derived, typename... ConfigReaderTypes>
 class ConfigReader : 
 	public AddFeatures<
