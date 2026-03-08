@@ -348,7 +348,8 @@ template<>
 bool TypeParser<bool>::fromString(const std::string& str) 
 {
 	std::string lower = str;
-	std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+	std::transform(lower.begin(), lower.end(), lower.begin(), 
+	[](unsigned char c){return static_cast<char>(std::tolower(c));});
 	
 	if (lower == "true" || lower == "1" || lower == "yes" || lower == "on") 
 	{
