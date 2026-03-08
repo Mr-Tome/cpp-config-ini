@@ -2,7 +2,6 @@
 #include <fstream>
 #include <memory>
 #include "config_library/config_reader/config_reader.hpp"
-#include "config_library/common/validation_rules.hpp"
 #include "MonteCarloConfig.hpp"
 #include "SimpleCLI.hpp"
 

@@ -12,6 +12,8 @@ add_library(source_directory_lib STATIC
 	config_reader/cli_config_reader.cpp
 	config_reader/cli_config_reader.hpp
 	config_reader/config_reader.hpp
+	config_reader/config_reader_base.hpp
+	config_reader/config_reader_base.cpp
 )
 
 target_include_directories(source_directory_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
