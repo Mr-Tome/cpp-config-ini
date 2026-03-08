@@ -11,6 +11,8 @@ add_library(source_directory_lib STATIC
 	config_reader/ini_config_reader.hpp
 	config_reader/cli_config_reader.cpp
 	config_reader/cli_config_reader.hpp
+	config_reader/cli_parser.cpp
+	config_reader/cli_parser.hpp
 	config_reader/config_reader.hpp
 	config_reader/config_reader_base.hpp
 	config_reader/config_reader_base.cpp
