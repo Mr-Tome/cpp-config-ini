@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include "ini_config_reader.hpp"
+#include "../common/config_lib_internal_utility.hpp"
 
 namespace ConfigLib 
 {
@@ -117,5 +118,92 @@ void generateConfigFileIfNeeded(
 		throw std::runtime_error("Unable to open file for writing: " + filePath);
 	}
 }
+
 	
+void loadConfigFromFile(
+	const std::string& filePath,
+	const std::vector<ConfigSection>& configSections,
+	std::unordered_map<std::string, ConfigSectionStore>& sections) 
+{
+	std::cout << "Calling loadConfig()" << std::endl;
+		
+	std::ifstream file(filePath);
+	if (!file.is_open()) 
+	{
+		std::cerr << "Unable to open file: " << filePath << std::endl;
+		return;
+	}
+
+	std::string current_section;
+	std::string line;
+	
+	std::unordered_map<std::string,
+		std::unordered_map<std::string, const ConfigItem*>> schemaLookup;
+		
+	for (const auto& section : configSections)
+		for (const auto& item : section.items)
+			schemaLookup[section.name][item.name] = &item;
+			
+	while (std::getline(file, line)) 
+	{
+		line = ConfigLib::Internal::trim(line);
+		if (line.empty() || line[0] == '#') continue;
+
+		if (line[0] == '[' && line.back() == ']') 
+		{
+			current_section = line.substr(1, line.size() - 2);
+			continue;
+		} 
+		
+		auto pos = line.find('=');
+		
+		if(pos == std::string::npos) continue;
+		
+		std::string key = ConfigLib::Internal::trim(line.substr(0, pos));
+		std::string value = line.substr(pos + 1);
+		
+		// remove the comments from the value
+		size_t commentPos = value.find('#'); //TODO: if a user puts a '#' in a std::string uh oh...
+		if (commentPos != std::string::npos) 
+		{
+			value = value.substr(0, commentPos);
+		}
+		value = ConfigLib::Internal::trim(value);
+		
+		if(current_section.empty()) continue;
+		
+		auto sectionIt = schemaLookup.find(current_section);
+		if (sectionIt == schemaLookup.end()) continue;
+		
+		auto itemIt = sectionIt->second.find(key);
+		if (itemIt == sectionIt->second.end()) continue;
+		const ConfigItem& item = *itemIt->second;
+		
+		try 
+		{
+			auto& registry = TypeRegistry::instance();
+			auto parsedValue = registry.parseValue(item.type, value);
+			
+			//if there's a rule, let's validate against it.
+			if (!item.validationRule || (*item.validationRule)(*parsedValue)) 
+			{
+				sections[current_section].getValues()[key] = parsedValue;
+			} 
+			else 
+			{
+				std::cerr << "Validation failed for " << current_section << "." << key 
+						  << ". Using default value." << std::endl;
+				Internal::applyDefaultValue(current_section, key, item, sections);
+			}
+		} 
+		catch (const std::exception& e) 
+		{
+			std::cerr << "Error processing " << current_section << "." << key 
+					  << ": " << e.what() << ". Using default value." << std::endl;
+			Internal::applyDefaultValue(current_section, key, item, sections);
+		}			
+	}
+	std::cout << "Config loaded" << std::endl;
+}
+  	
 } // namespace ConfigLib

@@ -48,9 +48,9 @@ public:
     const std::unordered_map<std::string, ConfigSectionStore>& getSections() const { return sections; }
     
 protected:
-	// Persistence path
-	void initialize(const std::string& filePath,
-					const std::vector<ConfigSection>& configSections); //this is a INI/Persistence only concern.
+	//should just validate schema really...
+	void initialize(const std::vector<ConfigSection>& configSections);
+	
 	// Persistence path
     void saveConfig(const std::vector<ConfigSection>& configSections,
 					const std::string& instructions_footer = "") const;
@@ -63,12 +63,24 @@ protected:
     
     void setValidationRule(const std::string& section, const std::string& key, const ValidationRules::Rule* rule);
     
+    void useDefaultValue(const std::string& section, const std::string& key, const ConfigItem& item);
+    
     std::string filepath;
     std::unordered_map<std::string, ConfigSectionStore> sections;
-	
+
 private:
-    void loadConfig(const std::vector<ConfigSection>& configSections);
     void setValidationRules(const std::vector<ConfigSection>& configSections);
-    void useDefaultValue(const std::string& section, const std::string& key, const ConfigItem& item);
 };
+
+namespace Internal
+{
+	//cant really put this in the utility file without fwd decl
+void applyDefaultValue(
+    const std::string& sectionName,
+    const std::string& key,
+    const ConfigItem& item,
+    std::unordered_map<std::string, ConfigSectionStore>& sections);
+}; // namespace ConfigLib::Internal
+
+
 } // namespace ConfigLib
