@@ -31,11 +31,30 @@ bool tryParseLibProvidedCLIFlags(
 	if(arg == "--save") {flags.save = true; return true;}
 	if(arg == "--reset") {flags.reset = true; return true;}
 	if(arg == "--diff") {flags.diff = true; return true;}
-	if(arg == "--flat") {flags.diff = true; return true;}
-	if(arg == "--no-flat") {flags.diff = true; return true;}
 	
+	const std::string flatPrefix = "--flat=";
 	const std::string configPrefix = "--config=";
 	const std::string exportPrefix = "--export=";
+	
+	if(arg.substr(0,flatPrefix.size()) == flatPrefix)
+	{
+		const std::string value = arg.substr(flatPrefix.size());
+		if(value.empty())
+			throw std::runtime_error(
+				"--flat= requires a boolean value. "
+				"Examples: ---flat=true, --flat=false, --flat=yes, --flat=0");
+		
+		try{TypeParser<bool>::fromString(value);}
+		catch(const std::exception& e)
+		{
+			throw std::runtime_error(
+				std::string("Invalid value for --flat=: ") + e.what() + ". "
+				"Examples: --flat=true, --flat=false, --flat=yes, --flat=0");
+		}
+		flags.flat = value;
+		return true;
+			
+	}
 	
 	if(arg.substr(0,configPrefix.size()) == configPrefix)
 	{
@@ -50,7 +69,7 @@ bool tryParseLibProvidedCLIFlags(
 	if(arg.substr(0,exportPrefix.size()) == exportPrefix)
 	{
 		flags.export_path = arg.substr(exportPrefix.size());
-		if(flags.config_path.empty())
+		if(flags.export_path.empty())
 			throw std::runtime_error(
 				"--export= requires a file path. Example: --export=output.ini");
 		
@@ -64,7 +83,7 @@ void parseIntoParsedCLIArgs(
 	const std::string& arg, 
 	const std::string& body,
 	const SchemaLookup& schemaLookup,
-	std::map<std::pair<std::string, std::string>, std::string> values)
+	std::map<std::pair<std::string, std::string>, std::string>& values)
 {
 	// TODO (IHT 20260308): could be section.key= value, section.key =value, section.key = value or without the section...
 	const auto dotPos = body.find('.');

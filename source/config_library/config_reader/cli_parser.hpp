@@ -14,8 +14,9 @@ struct LibProvidedCLIFlags
 	bool save = false; // writes current state back to the Persistence Reader (INI/JSON/etc.)
 	bool reset = false; // deliete the INI file so it regenerates from the default.
 	bool diff = false; // show the values that differ from the schema defaults
-	bool flat = false; // enables a flat key lookup
-	bool no_flat = false; // enables a flat key lookup
+	
+	
+	std::string flat; // enables a flat key lookup
 	std::string config_path; //use an alterante INI file path.
 	std::string export_path; //write current config to a new file at this path.
 };
