@@ -57,8 +57,11 @@ private:
 		const ParsedCLIArgs parsed = parseCLIArgs(this->rawCLIArgs,
 														configSections);
 		
-		//if(parsed.values.empty())
-		//	return;
+		if(parsed.flags.help)
+		{
+			printHelp(configSections);
+			std::exit(0);
+		}
 		
 		std::unordered_map<std::string,
 			std::unordered_map<std::string, const ConfigItem*>> schemaLookup;
@@ -104,7 +107,7 @@ private:
 	}
 	
 	void checkIfVolatileItemsWereParsed(
-			const std::vector<ConfigLib::ConfigSection>& configSections,
+			const std::vector<ConfigSection>& configSections,
 			const ParsedCLIArgs& parsed)
 	{
 		std::vector<std::string> missingVolatile;
@@ -135,6 +138,49 @@ private:
 			
 			throw std::runtime_error(msg);
 		}
+	}
+	
+	void printHelp(const std::vector<ConfigSection>& configSections)
+	{
+		const std::string programName =
+			this->rawCLIArgs.empty() ? "<program>" : this->rawCLIArgs[0];
+			
+		std::cout 
+			<< "\nUsage: " << programName << " [options]\n"
+			<< "\n Configure the application with the following options:\n"
+			<< " Example: Example: ./build/configs --Run.verbosity=2 --Run.run_id=my_run\n";
+			
+			
+		for (const auto& section : configSections)
+		{
+			std::cout << "\n [" << section.name <<"]\n";
+			for(const auto& item:section.items)
+			{
+				const bool isVolatile = (item.persistence == Persistence::Volatile);
+				std::ostringstream line;
+				line << " --" << section.name << "." <<item.name
+					 << "=<" << item.type << ">";
+				
+				const std::string lineStr = line.str();
+				const int padTo = 42;
+				const int pad = padTo - static_cast<int>(lineStr.size());
+				std::cout <<lineStr << std::string(pad > 0 ? pad : 1, ' ');
+				
+				std::cout << item.description;
+				
+				if(isVolatile)
+					std::cout << "  [REQUIRED: must be supplied every run]";
+				else
+					std::cout << "  [default: " << item.defaultValue << "]";
+					
+				if(item.validationRule)
+					std::cout << "  (" << item.validationRule->toString() << ")";
+				
+				std::cout << "\n";
+			}
+		}
+		
+		LibProvidedCLIFlags::printFlags();
 	}
 };
 

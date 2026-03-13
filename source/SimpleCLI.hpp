@@ -1,8 +1,4 @@
 #include <iostream>
-#include <vector>
-#include <random>
-#include <cmath>
-#include <numeric>
 #include "config_library/config_reader/config_reader.hpp"
 #include "config_library/common/validation_rules.hpp"
 
@@ -38,12 +34,12 @@ public:
 
 struct SimpleCLI
 {
+	SimpleCLIConfig config;
 	SimpleCLI(int argc, char* argv[]) : config(argc, argv)
 	{
 		run_simple_cli_config();
 		config.printRawArgs();
 	}
-	SimpleCLIConfig config;
 	void run_simple_cli_config()
 	{
 		std::cout << "\n--- SimpleCLIConfig (CLI-only) ---" << std::endl;
