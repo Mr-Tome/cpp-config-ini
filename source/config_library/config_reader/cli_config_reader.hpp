@@ -57,8 +57,8 @@ private:
 		const ParsedCLIArgs parsed = parseCLIArgs(this->rawCLIArgs,
 														configSections);
 		
-		if(parsed.values.empty())
-			return;
+		//if(parsed.values.empty())
+		//	return;
 		
 		std::unordered_map<std::string,
 			std::unordered_map<std::string, const ConfigItem*>> schemaLookup;
@@ -96,9 +96,45 @@ private:
 					+ "=" + value + ": " + e.what());
 			}
 		}
-
+		
+		checkIfVolatileItemsWereParsed(configSections, parsed);
+		
 		std::cout << "CLIFeatureLayer: applied " << parsed.values.size()
 		          << " CLI override(s)" << std::endl;
+	}
+	
+	void checkIfVolatileItemsWereParsed(
+			const std::vector<ConfigLib::ConfigSection>& configSections,
+			const ParsedCLIArgs& parsed)
+	{
+		std::vector<std::string> missingVolatile;
+		
+		for (const auto& section : configSections)
+		{
+			for (const auto& item : section.items)
+			{
+				if(item.persistence != Persistence::Volatile) continue;
+				
+				if(parsed.values.find({section.name, item.name}) 
+						== parsed.values.end())
+				{
+					missingVolatile.push_back(
+						" --" + section.name + "." + item.name
+						+ "=<" + item.type + "> ("+item.description+")"
+					);
+				}
+			}
+		}
+		if(!missingVolatile.empty())
+		{
+			std::string msg = 
+				"Missing required volatile field(s). "
+				"These must be supplied on every run via CLI:\n";
+			for(const auto& volatile_err_string : missingVolatile)
+				msg+= volatile_err_string + "\n";
+			
+			throw std::runtime_error(msg);
+		}
 	}
 };
 
