@@ -23,7 +23,7 @@ else
 	touch run
 	chmod +x run
 	echo "#!/bin/bash" > run
-	echo "./build/configs $@" >> run
+	echo "./build/configs \"$@\"" >> run
 	
 	echo "Finished Making CPP project..."
 	echo ""
