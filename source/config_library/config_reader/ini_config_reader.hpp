@@ -23,29 +23,16 @@ void loadConfigFromFile(
 template<typename Derived>
 class INIConfigReader : public ConfigReaderBase
 {
-	void commonConstructorInit(Derived& d)
-	{
-		generateConfigFileIfNeeded(d.getConfigFilePath(), d.getConfigSections());
-		this->filepath = d.getConfigFilePath();
-		initialize(d.getConfigSections());
-		loadConfigFromFile(this->filepath, d.getConfigSections(), this->sections);
-	}
 	
 public:
 	INIConfigReader()
 	{
 		Derived& d = static_cast<Derived&>(*this);
 		assertNoVolatileFieldsInINIOnlyReader(d.getConfigSections());
-		
-		commonConstructorInit(d);
-	}
-	
-	INIConfigReader(int argc, char* argv[])
-	{
-		Derived& d = static_cast<Derived&>(*this);
-		for(int i = 0; i < argc; ++i) rawCLIArgs.emplace_back(argv[i]);
-		
-		commonConstructorInit(d);
+		generateConfigFileIfNeeded(d.getConfigFilePath(), d.getConfigSections());
+		this->filepath = d.getConfigFilePath();
+		initialize(d.getConfigSections());
+		loadConfigFromFile(this->filepath, d.getConfigSections(), this->sections);
 	}
 	
 	void saveConfig() const

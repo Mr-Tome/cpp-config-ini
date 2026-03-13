@@ -16,13 +16,6 @@ public:
 		Derived& d = static_cast<Derived&>(*this);
 		initializeForCLI(d.getConfigSections());
 	}
-	
-	NoPersistenceReader(int argc, char* argv[])
-	{
-		Derived& d = static_cast<Derived&>(*this);
-		for(int i = 0; i < argc; ++i) rawCLIArgs.emplace_back(argv[i]);
-		initializeForCLI(d.getConfigSections());
-	}
 };
 
 //cli wrapper class. 
@@ -34,14 +27,29 @@ public:
 	CLIFeatureLayer() : Base()
 	{
 		std::cout << "CLIFeatureLayer default constructor called" << std::endl;
-	}
-	
-	CLIFeatureLayer(int argc, char* argv[]) : Base(argc, argv)
-	{
-		std::cout << "CLIFeatureLayer argc & argv constructor called" << std::endl;
 		applyCLIOverrides();
 	}
+	
+	CLIFeatureLayer(int argc, char* argv[]) : Base()
+	{
+		std::cout << "CLIFeatureLayer argc & argv constructor called" << std::endl;
+		for (int i = 0; i < argc; ++i) rawCLIArgs.emplace_back(argv[i]);
+		applyCLIOverrides();
+	}
+	
+	void printRawArgs()
+	{
+		std::cout << "------rawCLIArgs-----" << std::endl;
+		std::cout << "Number of Args: " << rawCLIArgs.size() <<std::endl;
+		std::cout << "values: " << std::endl;
+		for(const auto& arg: rawCLIArgs)
+		{
+			std::cout << "------"<<arg<<"------"<<std::endl;
+		}
+	}
 private:
+	std::vector<std::string> rawCLIArgs;
+	
 	void applyCLIOverrides()
 	{
 		Derived& d = static_cast<Derived&>(*this);

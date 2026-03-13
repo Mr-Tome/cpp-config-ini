@@ -59,7 +59,6 @@ protected:
 	void assertNoVolatileFieldsInINIOnlyReader(const std::vector<ConfigSection>& configSections) const;
 	//TODO (IHT 20260227): Determine how this and the function above should be handled. this is a CLI conly concern.
 	void initializeForCLI(const std::vector<ConfigSection>& configSections);
-    std::vector<std::string> rawCLIArgs;
     
     void setValidationRule(const std::string& section, const std::string& key, const ValidationRules::Rule* rule);
     
