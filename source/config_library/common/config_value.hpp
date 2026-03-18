@@ -144,6 +144,8 @@ public:
 	}
 
     void setValidationRule(const std::string& key, const ValidationRules::Rule* rule);
+    void setValueFromParsed(const std::string& key, std::shared_ptr<ConfigValue> parsedValue);
+    
     const std::unordered_map<std::string, std::shared_ptr<ConfigValue>>& getValues() const;
 	std::unordered_map<std::string, std::shared_ptr<ConfigValue>>& getValues();
 
