@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config_reader_base.hpp"
+#include "PersistenceReaders/IPersistenceReader.hpp"
 
 namespace ConfigLib 
 {
@@ -21,7 +22,7 @@ void loadConfigFromFile(
 	
 //only thing this should be doing is calling derived class initialize and saveConfig
 template<typename Derived>
-class INIConfigReader : public ConfigReaderBase
+class INIConfigReader : public ConfigReaderBase, public IPersistenceReader
 {
 	
 public:
@@ -39,7 +40,39 @@ public:
 	{
 		const Derived& d = static_cast<const Derived&>(*this);
 		ConfigReaderBase::saveConfig(d.getConfigSections(),
+									 this->filepath,
 									 iniInstructions());
+	}
+	
+	void persistSave(const std::vector<ConfigSection>& configSections) const override
+	{
+		ConfigReaderBase::saveConfig(
+			configSections,
+			this->filepath,
+			iniInstructions());
+	}
+
+	void persistReset() override
+	{
+		if (std::remove(this->filepath.c_str()) != 0)
+		{
+			throw std::runtime_error(
+				"--reset: failed to delete config file: " + this->filepath
+				+ ". Does it exist?");
+		}
+		std::cout << "--reset: deleted '" << this->filepath
+		          << "'. Defaults will regenerate on the next run." << std::endl;
+	}
+
+	void persistExport(
+		const std::string& exportPath,
+		const std::vector<ConfigSection>& configSections) const override
+	{
+		ConfigReaderBase::saveConfig(
+			configSections,
+			iniInstructions(),
+			exportPath);
+		std::cout << "--export: wrote config to '" << exportPath << "'." << std::endl;
 	}
 };
 

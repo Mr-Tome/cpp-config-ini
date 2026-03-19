@@ -16,9 +16,6 @@ void ConfigReaderBase::initialize(
 	std::cout << "ConfigReader::initialize started" << std::endl;
 	try 
 	{
-		//this->filepath = filePath;
-		//std::cout << "Config file path: " << filepath << std::endl;
-
 		std::cout << "Validating configuration schema..." << std::endl;
 		if (!validateConfig(configSections)) 
 		{
@@ -59,10 +56,10 @@ void ConfigReaderBase::assertNoVolatileFieldsInINIOnlyReader(const std::vector<C
 					"to Persistence::Normal.");
 }
 	
-void ConfigReaderBase::initializeForCLI(
+void ConfigReaderBase::validateForCLI(
 			const std::vector<ConfigSection>& configSections) 
 {
-	std::cout << "ConfigReader::initializeForCLI started" << std::endl;
+	std::cout << "ConfigReader::validateForCLI started" << std::endl;
 	try 
 	{
 		std::cout << "Validating configuration schema..." << std::endl;
@@ -86,15 +83,15 @@ void ConfigReaderBase::initializeForCLI(
 	} 
 	catch (const std::exception& e) 
 	{
-		auto error_string = std::string("Exception in ConfigReader::initializeForCLI: ") + e.what();
+		auto error_string = std::string("Exception in ConfigReader::validateForCLI: ") + e.what();
 		throw std::runtime_error(error_string);
 	} 
 	catch (...) 
 	{
-		auto error_string = std::string("Unknown exception in ConfigReader::initializeForCLI");
+		auto error_string = std::string("Unknown exception in ConfigReader::validateForCLI");
 		throw std::runtime_error(error_string);
 	}
-	std::cout << "ConfigReader::initializeForCLI finished" << std::endl;
+	std::cout << "ConfigReader::validateForCLI finished" << std::endl;
 }	
 
 void ConfigReaderBase::setValidationRule(const std::string& section, 
@@ -153,13 +150,14 @@ void ConfigReaderBase::useDefaultValue(const std::string& section,
 	
 void ConfigReaderBase::saveConfig(
 		const std::vector<ConfigSection>& configSections,
+		const std::string& path,
 		const std::string& instructions_footer) const 
 {
-	std::cout << "Saving the current configuration to: " << this->filepath<< std::endl;
-	std::ofstream file(filepath);
+	std::cout << "Saving the current configuration to: " <<path<< std::endl;
+	std::ofstream file(path);
 	if (!file.is_open()) 
 	{
-		throw std::runtime_error("Unable to open file for writing: " + filepath);
+		throw std::runtime_error("Unable to open file for writing: " + path);
 	}
 
 	file << "# Configuration file\n\n";
@@ -185,7 +183,7 @@ void ConfigReaderBase::saveConfig(
 	if(!instructions_footer.empty())
 		file << instructions_footer;
 	
-	std::cout << "Finished saving the current configuration to: " << this->filepath<< std::endl;
+	std::cout << "Finished saving the current configuration to: " << path<< std::endl;
 }
 
 } // namespace ConfigLib

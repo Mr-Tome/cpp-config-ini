@@ -164,18 +164,4 @@ ParsedCLIArgs parseCLIArgs(
 	return result;
 }
 
-void LibProvidedCLIFlags::printFlags()
-{
-	std::cout 
-		<< "\nSystem Flags:\n"
-		<< "  --help                            Print this message and exit\n"
-		<< "  --print                           Dump the resolved config after all overrides\n"
-		<< "  --save                            Write current state to config file (volatile fields skipped)\n"
-		<< "  --reset                           Delete config file; defaults regenerate on next run\n"
-		<< "  --diff                            Show values that differ from schema defaults\n"
-		<< "  --flat=<bool>                     Enable or disable flat key lookup (e.g. --flat=true)\n"
-		<< "  --export=<path>                   Write the resolved config to a new file\n"
-		<< "  --config=<path>                   Use an alternative config file\n"
-		<< "\n";
-}
 } // namespace ConfigLib

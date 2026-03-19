@@ -53,12 +53,13 @@ protected:
 	
 	// Persistence path
     void saveConfig(const std::vector<ConfigSection>& configSections,
+					const std::string& path,
 					const std::string& instructions_footer = "") const;
 					
 	//TODO (IHT 20260228): Determine how this and the function above should be handled. this is a INI/Persistence only concern.
 	void assertNoVolatileFieldsInINIOnlyReader(const std::vector<ConfigSection>& configSections) const;
 	//TODO (IHT 20260227): Determine how this and the function above should be handled. this is a CLI conly concern.
-	void initializeForCLI(const std::vector<ConfigSection>& configSections);
+	void validateForCLI(const std::vector<ConfigSection>& configSections);
     
     void setValidationRule(const std::string& section, const std::string& key, const ValidationRules::Rule* rule);
     

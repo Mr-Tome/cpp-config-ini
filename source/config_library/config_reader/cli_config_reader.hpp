@@ -1,4 +1,5 @@
 #pragma once
+#include <type_traits>
 #include "ini_config_reader.hpp"
 #include "cli_parser.hpp"
 
@@ -14,7 +15,7 @@ public:
 	NoPersistenceReader()
 	{
 		Derived& d = static_cast<Derived&>(*this);
-		initializeForCLI(d.getConfigSections());
+		validateForCLI(d.getConfigSections());
 	}
 };
 
@@ -27,14 +28,14 @@ public:
 	CLIFeatureLayer() : Base()
 	{
 		std::cout << "CLIFeatureLayer default constructor called" << std::endl;
-		applyCLIOverrides();
+		init();
 	}
 	
 	CLIFeatureLayer(int argc, char* argv[]) : Base()
 	{
 		std::cout << "CLIFeatureLayer argc & argv constructor called" << std::endl;
 		for (int i = 0; i < argc; ++i) rawCLIArgs.emplace_back(argv[i]);
-		applyCLIOverrides();
+		init();
 	}
 	
 	void printRawArgs()
@@ -50,26 +51,123 @@ public:
 private:
 	std::vector<std::string> rawCLIArgs;
 	
-	void applyCLIOverrides()
+	using HasPersistence = std::is_base_of<IPersistenceReader, Base>;
+	
+	void handleSave(
+		const std::vector<ConfigSection>& configSections,
+		std::true_type) const
+	{
+		static_cast<const IPersistenceReader*>(this)
+			->persistSave(withoutVolatileItems(configSections));
+	}
+	void handleSave(
+		const std::vector<ConfigSection>&,
+		std::false_type) const
+	{
+		std::cerr << "Warning: --save has no effect because no persistence layer was configured.\n";
+	}
+
+	void handleReset(std::true_type)
+	{
+		static_cast<IPersistenceReader*>(this)->persistReset();
+	}
+	void handleReset(std::false_type)
+	{
+		std::cerr << "Warning: --reset has no effect because no persistence layer configured.\n";
+	}
+	
+	void handleExport(
+		const std::string& exportPath,
+		const std::vector<ConfigSection>& configSections,
+		std::true_type) const
+	{
+		static_cast<const IPersistenceReader*>(this)
+			->persistExport(exportPath, withoutVolatileItems(configSections));
+	}
+	void handleExport(
+		const std::string&,
+		const std::vector<ConfigSection>&,
+		std::false_type) const
+	{
+		std::cerr << "Warning: --export has no effect because no persistence layer configured.\n";
+	}
+	
+	
+	void printPersistenceFlags(std::true_type) const
+	{
+		std::cout
+			<< "  --save                            Write current state to config file (volatile fields skipped)\n"
+			<< "  --reset                           Delete config file; defaults regenerate on next run\n"
+			<< "  --export=<path>                   Write the resolved config to a new file\n"
+			<< "  --config=<path>                   Use an alternative config file\n";
+	}
+	void printPersistenceFlags(std::false_type) const {}
+	
+	void init()
 	{
 		Derived& d = static_cast<Derived&>(*this);
 		const auto configSections = d.getConfigSections();
 		const ParsedCLIArgs parsed = parseCLIArgs(this->rawCLIArgs,
 														configSections);
+														
+		helpIfNeeded(configSections, parsed);
+		applyCLIOverrides(configSections,parsed);
 		
+		//(IHT 2026.03.18) This needs to go last in this constructor atm,
+		// because it's acting on a fully resolved stated 
+		// of this class and base classes
+		parsePostConstructionSystemFlags(configSections, parsed);
+	}
+	
+	
+	void parsePostConstructionSystemFlags(
+		const std::vector<ConfigSection>& configSections,
+		const ParsedCLIArgs& parsed)
+	{
+		// TODO (IHT 2026.03.14): --config requires overriding developers getConfigFilePath before Base() runs in the initializer list.
+		// but rawCLIArgs isnt popuilated/parsed until constructor body. have to figure out how to defer...
+		// also, config_path is really only a Persistence store thing...
+		if (!parsed.flags.config_path.empty())
+			std::cerr << "Warning: --config= is not yet supported and has been ignored.\n";
+	
+		if (parsed.flags.print)
+			printConfig(configSections);
+		
+		if (parsed.flags.save)
+			handleSave(configSections, HasPersistence{});
+
+		if (parsed.flags.reset)
+			handleReset(HasPersistence{});
+
+		if (!parsed.flags.export_path.empty())
+			handleExport(parsed.flags.export_path, configSections, HasPersistence{});
+
+		if (parsed.flags.diff)
+			printDiff(configSections);
+	}
+	
+	void helpIfNeeded(
+		const std::vector<ConfigSection>& configSections,
+		const ParsedCLIArgs& parsed)
+	{
 		if(parsed.flags.help)
 		{
 			printHelp(configSections);
 			std::exit(0);
 		}
-		
+	}
+	
+	void applyCLIOverrides(
+		const std::vector<ConfigSection>& configSections,
+		const ParsedCLIArgs& parsed)
+	{
 		std::unordered_map<std::string,
 			std::unordered_map<std::string, const ConfigItem*>> schemaLookup;
 			
-		for (const auto& section : configSections)
-			for (const auto& item : section.items)
-				schemaLookup[section.name][item.name] = &item;
-				
+		for (const auto& s : configSections)
+			for (const auto& i : s.items)
+				schemaLookup[s.name][i.name] = &i;
+		
 		auto& registry = TypeRegistry::instance();
 		for (const auto& kv : parsed.values)
 		{
@@ -82,15 +180,7 @@ private:
 			try
 			{
 				auto parsedValue = registry.parseValue(item.type, value);
-				
-				if (item.validationRule && !(*item.validationRule)(*parsedValue))
-				{
-					throw std::runtime_error(
-						"Value '" + value + "' failed validation rule: "
-						+ item.validationRule->toString());
-				}
-
-				this->sections.at(section).getValues()[key] = parsedValue;
+				this->sections.at(section).setValueFromParsed(key, parsedValue);
 			}
 			catch (const std::exception& e)
 			{
@@ -104,6 +194,27 @@ private:
 		
 		std::cout << "CLIFeatureLayer: applied " << parsed.values.size()
 		          << " CLI override(s)" << std::endl;
+	}
+	
+	// returns a copy of configSections with all volatile items stripped out.
+	// used by persistSave and persistExport so volatile fields are never written
+	// to any file
+	static std::vector<ConfigSection> withoutVolatileItems(
+		const std::vector<ConfigSection>& configSections)
+	{
+		std::vector<ConfigSection> filtered;
+		for (const auto& section : configSections)
+		{
+			ConfigSection filteredSection;
+			filteredSection.name = section.name;
+			for (const auto& item : section.items)
+			{
+				if (item.persistence != Persistence::Volatile)
+					filteredSection.items.push_back(item);
+			}
+			filtered.push_back(filteredSection);
+		}
+		return filtered;
 	}
 	
 	void checkIfVolatileItemsWereParsed(
@@ -180,7 +291,63 @@ private:
 			}
 		}
 		
-		LibProvidedCLIFlags::printFlags();
+		std::cout 
+		<< "\nSystem Flags:\n"
+		<< "  --help                            Print this message and exit\n"
+		<< "  --print                           Dump the resolved config after all overrides\n"
+		<< "  --diff                            Show values that differ from schema defaults\n"
+		<< "  --flat=<bool>                     Enable or disable flat key lookup (e.g. --flat=true)\n";
+		
+		printPersistenceFlags(HasPersistence{});
+		std::cout << "\n";
+	}
+	
+	void printConfig(const std::vector<ConfigSection>& configSections) const
+	{
+		std::cout << "\n--- Current configuration ---\n";
+		for (const auto& section : configSections)
+		{
+			std::cout << "[" << section.name << "]\n";
+			for (const auto& item : section.items)
+			{
+				const std::string currentValue =
+					this->sections.at(section.name).getValues().at(item.name)->toString();
+				std::cout << "  " << item.name << " = " << currentValue << "\n";
+			}
+		}
+		std::cout << "--- End configuration ---\n\n";
+	}
+	
+	void printDiff(
+		const std::vector<ConfigSection>& configSections) const
+	{
+		std::cout << "\n--- Diff from schema defaults ---\n";
+		bool anyDiff = false;
+
+		for (const auto& section : configSections)
+		{
+			for (const auto& item : section.items)
+			{
+				// Volatile fields are always different by design — skip them.
+				if (item.persistence == Persistence::Volatile) continue;
+
+				const std::string currentValue =
+					this->sections.at(section.name).getValues().at(item.name)->toString();
+
+				if (currentValue != item.defaultValue)
+				{
+					std::cout << "  " << section.name << "." << item.name
+					          << ": " << currentValue
+					          << "  (default: " << item.defaultValue << ")\n";
+					anyDiff = true;
+				}
+			}
+		}
+
+		if (!anyDiff)
+			std::cout << "  (all values match schema defaults)\n";
+
+		std::cout << "--- End diff ---\n\n";
 	}
 };
 

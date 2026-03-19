@@ -20,7 +20,6 @@ struct LibProvidedCLIFlags
 	std::string config_path; //use an alterante INI file path.
 	std::string export_path; //write current config to a new file at this path.
 	
-	static void printFlags();
 };
 
 struct ParsedCLIArgs

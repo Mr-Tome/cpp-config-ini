@@ -16,6 +16,8 @@ add_library(source_directory_lib STATIC
 	config_reader/config_reader.hpp
 	config_reader/config_reader_base.hpp
 	config_reader/config_reader_base.cpp
+	
+	config_reader/PersistenceReaders/IPersistenceReader.hpp
 )
 
 target_include_directories(source_directory_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
