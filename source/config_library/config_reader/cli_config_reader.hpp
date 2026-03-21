@@ -95,7 +95,7 @@ private:
 	}
 	void printPersistenceFlags(std::false_type) const {}
 	
-	bool isFlatEnabled(Derived& d)
+	bool isFlatEnabled(const Derived& d)
 	{
 		bool flatEnabled = d.flattenCLIArgs();
 		const std::string flatPrefix = "--flat=";
@@ -119,7 +119,7 @@ private:
 	
 	void init()
 	{
-		Derived& d = static_cast<Derived&>(*this);
+		const Derived& d = static_cast<Derived&>(*this);
 		const auto configSections = d.getConfigSections();
 		
 		const CLIKeyMap keyMap = buildCLIKeyMap(configSections);

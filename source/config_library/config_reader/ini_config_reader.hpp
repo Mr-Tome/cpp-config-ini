@@ -28,7 +28,7 @@ class INIConfigReader : public ConfigReaderBase, public IPersistenceReader
 public:
 	INIConfigReader()
 	{
-		Derived& d = static_cast<Derived&>(*this);
+		const Derived& d = static_cast<Derived&>(*this);
 		if(!HasCLI)
 			assertNoVolatileFieldsInINIOnlyReader(d.getConfigSections());
 		generateConfigFileIfNeeded(d.getConfigFilePath(), d.getConfigSections());

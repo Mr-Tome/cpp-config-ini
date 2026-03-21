@@ -54,7 +54,7 @@ public:
 		};
 	}
 	
-	std::string getConfigFilePath()
+	std::string getConfigFilePath() const
 	{
 		return "simple_cli_ini_config.ini";
 	}
