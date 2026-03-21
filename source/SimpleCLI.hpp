@@ -2,10 +2,10 @@
 #include "config_library/config_reader/config_reader.hpp"
 #include "config_library/common/validation_rules.hpp"
 
-class SimpleCLIConfig : public ConfigLib::ConfigReader<SimpleCLIConfig, ConfigLib::CLI>
+class SimpleCLIConfig : public ConfigLib::ConfigReader<SimpleCLIConfig, ConfigLib::CLI, ConfigLib::INI>
 {
 public:
-	SimpleCLIConfig(int argc, char* argv[]): ConfigLib::ConfigReader<SimpleCLIConfig, ConfigLib::CLI>(argc, argv)
+	SimpleCLIConfig(int argc, char* argv[]): ConfigLib::ConfigReader<SimpleCLIConfig, ConfigLib::CLI, ConfigLib::INI>(argc, argv)
 	{
 		std::cout<<"SimpleCLI constructor called" << std::endl;
 	}
@@ -30,6 +30,10 @@ public:
 		};
 	}
 	
+	std::string getConfigFilePath()
+	{
+		return "simple_cli_config.ini";
+	}
 };
 
 struct SimpleCLI

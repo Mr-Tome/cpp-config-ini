@@ -285,7 +285,7 @@ private:
 		std::cout 
 			<< dashes <<dashes <<"\n"
 			<< dashes2 << "Help" <<dashes2<<"\n"
-			<< dashes <<dashes <<"\n\n";
+			<< dashes <<dashes <<"\n";
 
 
 		const std::string programName =
@@ -293,40 +293,33 @@ private:
 			
 		std::cout << "\nProgram Usage: " << programName << " [options]\n";
 		
-		std::cout 
-			<< "\nFlat key lookup is currently "
-			<< (flatEnabled ? "ENABLED" : "DISABLED") << ".\n"
-			<< "Keys with a unique name can be supplied as --key=value.\n"
-			<< "Keys marked [qualified only] exist in multiple sections"
-				" and always require --Section.key=value.\n";
-		
-		std::cout 
-			<< "\n Configure the application with the following options:\n"
-			<< "  Example: ./build/configs --Run.verbosity=2 --Run.run_id=my_run\n";
-			
+		if (flatEnabled)
+			std::cout
+				<< "\nFlat lookup is ON: use --key=value as a shorthand instead of"
+				   " --Section.key=value.\n"
+				<< "Keys marked [qualified only], in the schema below, collide with another section and"
+				   " always require --Section.key=value.\n";
+		else
+			std::cout
+				<< "\nFlat lookup is OFF: always use --Section.key=value.\n"
+				<< "Enable with --flat=true.\n";
 			
 		for (const auto& section : configSections)
 		{
-			std::cout << "\n [" << section.name <<"]\n";
+			std::cout << "\n[" << section.name <<"]\n";
 			for(const auto& item:section.items)
 			{
 				const bool isVolatile = (item.persistence == Persistence::Volatile);
 				const auto qualifiedPair = std::make_pair(section.name, item.name);
 				
 				std::ostringstream line;
-				line << " --" << section.name << "." <<item.name
+				line << "  --" << section.name << "." <<item.name
 					 << "=<" << item.type << ">";
 				//std::cout << line.str();
 				
-				const auto flatIt = keyMap.qualifiedToFlat.find(qualifiedPair);
-				if(flatIt != keyMap.qualifiedToFlat.end())
+				if (keyMap.ambiguousKeysWhenFlat.find(item.name) != keyMap.ambiguousKeysWhenFlat.end())
 				{
-					line << "  (or --" << flatIt->second
-					          << "=<" << item.type << ">)";
-				}
-				else if (keyMap.ambiguousKeysWhenFlat.find(item.name) != keyMap.ambiguousKeysWhenFlat.end())
-				{
-					line << "  [qualified only: ambiguous key name]";
+					line << "  [qualified only]";
 				}
 				
 				//line << "\n";
@@ -339,7 +332,7 @@ private:
 				std::cout << item.description;
 				
 				if(isVolatile)
-					std::cout << "  [REQUIRED: must be supplied every run]";
+					std::cout << "  [REQUIRED]";
 				else
 					std::cout << "  [default: " << item.defaultValue << "]";
 					
