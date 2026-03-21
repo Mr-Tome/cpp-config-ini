@@ -38,16 +38,8 @@ public:
 		init();
 	}
 	
-	void printRawArgs()
-	{
-		std::cout << "------rawCLIArgs-----" << std::endl;
-		std::cout << "Number of Args: " << rawCLIArgs.size() <<std::endl;
-		std::cout << "values: " << std::endl;
-		for(const auto& arg: rawCLIArgs)
-		{
-			std::cout << "------"<<arg<<"------"<<std::endl;
-		}
-	}
+	bool flattenCLIArgs() const {return true;}
+
 private:
 	std::vector<std::string> rawCLIArgs;
 	
@@ -103,14 +95,44 @@ private:
 	}
 	void printPersistenceFlags(std::false_type) const {}
 	
+	bool isFlatEnabled(Derived& d)
+	{
+		bool flatEnabled = d.flattenCLIArgs();
+		const std::string flatPrefix = "--flat=";
+		
+		for(const auto& arg : this->rawCLIArgs)
+		{
+			if(arg.size() > flatPrefix.size() &&
+				arg.substr(0,flatPrefix.size())==flatPrefix)
+			{
+				const std::string val = arg.substr(flatPrefix.size());
+				try
+				{
+					flatEnabled = TypeParser<bool>::fromString(val);
+				}
+				catch(...){}
+				break;
+			}
+		}
+		return flatEnabled;
+	}
+	
 	void init()
 	{
 		Derived& d = static_cast<Derived&>(*this);
 		const auto configSections = d.getConfigSections();
+		
+		const CLIKeyMap keyMap = buildCLIKeyMap(configSections);
+		
+		bool flatEnabled = isFlatEnabled(d);
+		
 		const ParsedCLIArgs parsed = parseCLIArgs(this->rawCLIArgs,
-														configSections);
+														configSections,
+														keyMap,
+														flatEnabled);
+		
 														
-		helpIfNeeded(configSections, parsed);
+		helpIfNeeded(configSections, parsed, keyMap, flatEnabled);
 		applyCLIOverrides(configSections,parsed);
 		
 		//(IHT 2026.03.18) This needs to go last in this constructor atm,
@@ -148,11 +170,13 @@ private:
 	
 	void helpIfNeeded(
 		const std::vector<ConfigSection>& configSections,
-		const ParsedCLIArgs& parsed)
+		const ParsedCLIArgs& parsed,
+		const CLIKeyMap& keyMap,
+		bool flatEnabled) const
 	{
 		if(parsed.flags.help)
 		{
-			printHelp(configSections);
+			printHelp(configSections, keyMap, flatEnabled);
 			std::exit(0);
 		}
 	}
@@ -251,15 +275,34 @@ private:
 		}
 	}
 	
-	void printHelp(const std::vector<ConfigSection>& configSections)
+	void printHelp(
+		const std::vector<ConfigSection>& configSections,
+		const CLIKeyMap& keyMap, 
+		bool flatEnabled) const
 	{
+		std::string dashes = "--------------------------";
+		std::string dashes2 = "------------------------";
+		std::cout 
+			<< dashes <<dashes <<"\n"
+			<< dashes2 << "Help" <<dashes2<<"\n"
+			<< dashes <<dashes <<"\n\n";
+
+
 		const std::string programName =
 			this->rawCLIArgs.empty() ? "<program>" : this->rawCLIArgs[0];
 			
+		std::cout << "\nProgram Usage: " << programName << " [options]\n";
+		
 		std::cout 
-			<< "\nUsage: " << programName << " [options]\n"
+			<< "\nFlat key lookup is currently "
+			<< (flatEnabled ? "ENABLED" : "DISABLED") << ".\n"
+			<< "Keys with a unique name can be supplied as --key=value.\n"
+			<< "Keys marked [qualified only] exist in multiple sections"
+				" and always require --Section.key=value.\n";
+		
+		std::cout 
 			<< "\n Configure the application with the following options:\n"
-			<< " Example: Example: ./build/configs --Run.verbosity=2 --Run.run_id=my_run\n";
+			<< "  Example: ./build/configs --Run.verbosity=2 --Run.run_id=my_run\n";
 			
 			
 		for (const auto& section : configSections)
@@ -268,14 +311,30 @@ private:
 			for(const auto& item:section.items)
 			{
 				const bool isVolatile = (item.persistence == Persistence::Volatile);
+				const auto qualifiedPair = std::make_pair(section.name, item.name);
+				
 				std::ostringstream line;
 				line << " --" << section.name << "." <<item.name
 					 << "=<" << item.type << ">";
+				//std::cout << line.str();
+				
+				const auto flatIt = keyMap.qualifiedToFlat.find(qualifiedPair);
+				if(flatIt != keyMap.qualifiedToFlat.end())
+				{
+					line << "  (or --" << flatIt->second
+					          << "=<" << item.type << ">)";
+				}
+				else if (keyMap.ambiguousKeysWhenFlat.find(item.name) != keyMap.ambiguousKeysWhenFlat.end())
+				{
+					line << "  [qualified only: ambiguous key name]";
+				}
+				
+				//line << "\n";
 				
 				const std::string lineStr = line.str();
 				const int padTo = 42;
 				const int pad = padTo - static_cast<int>(lineStr.size());
-				std::cout <<lineStr << std::string(pad > 0 ? pad : 1, ' ');
+				std::cout << lineStr << std::string(pad > 0 ? pad : 1, ' ');
 				
 				std::cout << item.description;
 				
@@ -296,7 +355,8 @@ private:
 		<< "  --help                            Print this message and exit\n"
 		<< "  --print                           Dump the resolved config after all overrides\n"
 		<< "  --diff                            Show values that differ from schema defaults\n"
-		<< "  --flat=<bool>                     Enable or disable flat key lookup (e.g. --flat=true)\n";
+		<< "  --flat=<bool>                     Enable or disable flat key lookup (e.g. --flat=true)"
+			" (current default: "<< (flatEnabled ? "true": "false") << ")\n";
 		
 		printPersistenceFlags(HasPersistence{});
 		std::cout << "\n";

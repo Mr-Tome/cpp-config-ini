@@ -49,5 +49,7 @@ CLIKeyMap buildCLIKeyMap(const std::vector<ConfigSection>& sections);
 // throws std::runtime_error if something is wrong with the CLI.
 ParsedCLIArgs parseCLIArgs(
 	const std::vector<std::string>& rawArgs,
-	const std::vector<ConfigSection>& sections);
+	const std::vector<ConfigSection>& sections,
+	const CLIKeyMap& keyMap,
+	bool flatEnabled);
 } // namespace ConfigLib

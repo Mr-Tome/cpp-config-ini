@@ -1,12 +1,13 @@
 #include <stdexcept>
-#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
 #include "cli_parser.hpp"
-
+#include "../common/type_parser.hpp"
 
 namespace ConfigLib
 {
+
+
 
 namespace // anonymous
 {
@@ -85,21 +86,55 @@ void parseIntoParsedCLIArgs(
 	const std::string& arg, 
 	const std::string& body,
 	const SchemaLookup& schemaLookup,
+	const CLIKeyMap& keyMap,
+	bool flatEnabled,
 	std::map<std::pair<std::string, std::string>, std::string>& values)
 {
 	// TODO (IHT 20260308): could be section.key= value, section.key =value, section.key = value or without the section...
 	const auto dotPos = body.find('.');
+	
 	if(dotPos == std::string::npos)
-		throw std::runtime_error(
-			"Unrecognized argument '" + arg + "'. "
-			"To set a config value use --section.key=value "
-			"To see available flags, run with --help.");
-			
+	{
+		//could be a flat key.
+		if(!flatEnabled)
+			throw std::runtime_error(
+				"Unrecognized argument '" + arg + "'. "
+				"To set a config value use --section.key=value "
+				"To see available flags, run with --help.");
+		
+		const auto eqPos = body.find('='); 
+		if(eqPos == std::string::npos)
+			throw std::runtime_error(
+					"Malformed argument '" + arg + "': missing '='. "
+					"Expected --key=<value> or --Section.key=<value>.");
+					
+		const std::string flatKey = body.substr(0,eqPos);
+		const std::string value = body.substr(eqPos+1);
+		
+		if (keyMap.ambiguousKeysWhenFlat.find(flatKey) != keyMap.ambiguousKeysWhenFlat.end())
+			throw std::runtime_error(
+				"Ambiguous key '" + flatKey + "' in argument '" + arg + "': "
+				"this key exists in multiple sections. "
+				"Use the qualified form --Section." + flatKey + "=<value>. "
+				"Run --help to see all sections that contain this key.");
+		
+		
+		const auto it = keyMap.flatToQualified.find(flatKey);
+		if (it == keyMap.flatToQualified.end())
+			throw std::runtime_error(
+				"Unknown key '" + flatKey + "' in argument '" + arg + "'. "
+				"Run --help to see all available keys.");
+
+		values[it->second] = value;
+		return;
+	}
+	
+	// --Section.key=value path
 	const auto eqPos = body.find('=', dotPos+1); 
 	if(eqPos == std::string::npos)
 		throw std::runtime_error(
 			"Malformed argument '" + arg + "': missing '=' after key. "
-			"Expected --"+body.substr(0,eqPos) + "=<value>.");
+			"Expected --"+body.substr(0,dotPos) + "=<value>.");
 			
 	const std::string section = body.substr(0, dotPos);
 	const std::string key = body.substr(dotPos+1, eqPos-dotPos-1);
@@ -129,12 +164,70 @@ void parseIntoParsedCLIArgs(
 	values[{section,key}] = value;
 }
 
+//counts how many sections each config item name appears in
+// records which section owns it (first one found wins, but empty-string
+//section always overrides any other winner
+void countAndFindOwnerOfConfigItems(
+	const std::vector<ConfigSection>& sections,
+	std::unordered_map<std::string, int>& keyCount,
+	std::unordered_map<std::string, std::string>& keyOwner)
+{
+	for (const auto& section : sections)
+	{
+		for (const auto& item : section.items)
+		{
+			auto& configItemCount = ++keyCount[item.name];
+			
+			//TODO (IHT 2026.03,21): need to make sure develoeprs
+			// empty config sections dont beat the LibProvidedCLIFlags...
+			if(configItemCount == 1 || section.name.empty())
+				keyOwner[item.name] = section.name;
+		}
+	}
+}
+
 } // namespace anonymous
 	
 	
+CLIKeyMap buildCLIKeyMap(const std::vector<ConfigSection>& sections)
+{
+	CLIKeyMap result;
+	
+	std::unordered_map<std::string, int> keyCount;
+	//{ConfigItem name, section name}
+	std::unordered_map<std::string, std::string> keyOwner;
+	
+	countAndFindOwnerOfConfigItems(sections, keyCount, keyOwner);
+	
+	for (const auto& section : sections)
+	{
+		for (const auto& item : section.items)
+		{
+			const auto pair = std::make_pair(section.name, item.name);
+			const int count = keyCount.at(item.name);
+			const bool ownerIsEmpty = keyOwner.at(item.name).empty();
+			const bool unambiguous = (count == 1) || ownerIsEmpty;
+			
+			if(unambiguous && keyOwner.at(item.name) == section.name)
+			{
+				result.flatToQualified[item.name] = pair;
+				result.qualifiedToFlat[pair] = item.name;
+			}
+			else if (count > 1 && !ownerIsEmpty)
+			{
+				result.ambiguousKeysWhenFlat.insert(item.name);
+			}
+		}
+	}
+	
+	return result;
+}
+
 ParsedCLIArgs parseCLIArgs(
 	const std::vector<std::string>& rawArgs,
-	const std::vector<ConfigSection>& sections)
+	const std::vector<ConfigSection>& sections,
+	const CLIKeyMap& keyMap,
+	bool flatEnabled)
 {
 	ParsedCLIArgs result;
 	const SchemaLookup schemaLookup = buildSchemaLookup(sections);
@@ -158,6 +251,8 @@ ParsedCLIArgs parseCLIArgs(
 		parseIntoParsedCLIArgs(arg, 
 				arg.substr(2), 
 				schemaLookup, 
+				keyMap,
+				flatEnabled,
 				result.values);
 	}
 	

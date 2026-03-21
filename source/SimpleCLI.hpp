@@ -38,7 +38,6 @@ struct SimpleCLI
 	SimpleCLI(int argc, char* argv[]) : config(argc, argv)
 	{
 		run_simple_cli_config();
-		config.printRawArgs();
 	}
 	void run_simple_cli_config()
 	{
