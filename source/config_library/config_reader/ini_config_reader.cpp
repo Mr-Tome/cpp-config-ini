@@ -76,6 +76,10 @@ std::string generateConfig(const std::vector<ConfigSection>& sections)
 			{
 				config_content += " (validationRule: " + item.validationRule->toString() + ")";
 			}
+			if(item.persistence == Persistence::Volatile)
+			{
+				config_content += " [VOLATILE: must be supplied via CLI every run.]";
+			}
 			config_content += "\n";
 		}
 		config_content += "\n";

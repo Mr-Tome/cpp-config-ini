@@ -175,6 +175,10 @@ void ConfigReaderBase::saveConfig(
 			{
 				file << " (validationRule: " << item.validationRule->toString() << ")";
 			}
+			if(item.persistence == Persistence::Volatile)
+			{
+				file << " [VOLATILE: must be supplied via CLI every run.]";
+			}
 			file << "\n";
 		}
 		file << "\n";

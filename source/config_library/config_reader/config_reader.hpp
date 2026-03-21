@@ -23,14 +23,14 @@ struct HasType<Tag, Head, Tail...> // true if Tag appears anywhere in Types.
 
 
 // selects the persistence base from the type pack TODO (IHT 20260227): Introduce an XML/JSON in addition to INI)
-template<typename Derived, bool hasINI>
+template<typename Derived, bool hasINI, bool hasCLI>
 struct ResolvePersistenceType;
 
-template<typename Derived>
-struct ResolvePersistenceType<Derived, true> {using type = INIConfigReader<Derived>;};
+template<typename Derived, bool hasCLI>
+struct ResolvePersistenceType<Derived, true, hasCLI> {using type = INIConfigReader<Derived, hasCLI>;};
 
-template<typename Derived>
-struct ResolvePersistenceType<Derived, false>{using type = NoPersistenceReader<Derived>;};
+template<typename Derived, bool hasCLI>
+struct ResolvePersistenceType<Derived, false, hasCLI>{using type = NoPersistenceReader<Derived>;};
 
 
 //no CLI found in the pack. no need for the cli wrapper class;
@@ -64,7 +64,8 @@ class ConfigReader :
 				Derived,
 				typename ResolvePersistenceType<
 					Derived,
-					HasType<INI, ConfigReaderTypes...>::value
+					HasType<INI, ConfigReaderTypes...>::value,
+					HasType<CLI, ConfigReaderTypes...>::value
 				>::type,
 				ConfigReaderTypes...
 			>::type
@@ -80,7 +81,8 @@ class ConfigReader :
 				Derived,
 				typename ResolvePersistenceType<
 					Derived,
-					HasType<INI, ConfigReaderTypes...>::value
+					HasType<INI, ConfigReaderTypes...>::value,
+					HasType<CLI, ConfigReaderTypes...>::value
 				>::type,
 				ConfigReaderTypes...
 			>::type;

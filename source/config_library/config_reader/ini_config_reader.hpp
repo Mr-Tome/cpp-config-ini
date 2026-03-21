@@ -21,7 +21,7 @@ void loadConfigFromFile(
 	std::unordered_map<std::string, ConfigSectionStore>& sections);//from store	
 	
 //only thing this should be doing is calling derived class initialize and saveConfig
-template<typename Derived>
+template<typename Derived, bool HasCLI = false>
 class INIConfigReader : public ConfigReaderBase, public IPersistenceReader
 {
 	
@@ -29,7 +29,8 @@ public:
 	INIConfigReader()
 	{
 		Derived& d = static_cast<Derived&>(*this);
-		assertNoVolatileFieldsInINIOnlyReader(d.getConfigSections());
+		if(!HasCLI)
+			assertNoVolatileFieldsInINIOnlyReader(d.getConfigSections());
 		generateConfigFileIfNeeded(d.getConfigFilePath(), d.getConfigSections());
 		this->filepath = d.getConfigFilePath();
 		initialize(d.getConfigSections());
