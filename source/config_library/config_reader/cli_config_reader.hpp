@@ -91,7 +91,7 @@ private:
 		std::cout
 			<< "  --save                            Write current state to config file (volatile fields skipped)\n"
 			<< "  --reset                           Delete config file; defaults regenerate on next run\n"
-			<< "  --export=<path>                   Write the resolved config to a new file\n"
+			<< "  --export=<path>                   Write the config to a new file\n"
 			<< "  --config=<path>                   Use an alternative config file\n";
 	}
 	void printPersistenceFlags(std::false_type) const {}
@@ -364,6 +364,8 @@ private:
 			std::cout << "[" << section.name << "]\n";
 			for (const auto& item : section.items)
 			{
+				if (item.persistence == Persistence::Volatile) continue;
+				
 				const std::string currentValue =
 					this->sections.at(section.name).getValues().at(item.name)->toString();
 				std::cout << "  " << item.name << " = " << currentValue << "\n";
@@ -382,7 +384,6 @@ private:
 		{
 			for (const auto& item : section.items)
 			{
-				// Volatile fields are always different by design — skip them.
 				if (item.persistence == Persistence::Volatile) continue;
 
 				const std::string currentValue =

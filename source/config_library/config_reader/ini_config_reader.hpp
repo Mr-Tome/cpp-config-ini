@@ -75,8 +75,8 @@ public:
 	{
 		ConfigReaderBase::saveConfig(
 			configSections,
-			iniInstructions(),
-			exportPath);
+			exportPath,
+			iniInstructions());
 		std::cout << "--export: wrote config to '" << exportPath << "'." << std::endl;
 	}
 };
