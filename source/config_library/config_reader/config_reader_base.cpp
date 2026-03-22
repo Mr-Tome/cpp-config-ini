@@ -23,8 +23,12 @@ void ConfigReaderBase::initialize(
 		}
 		std::cout << "Schema validation passed." << std::endl;
 		
-		for (const auto& section : configSections) {
-			sections[section.name];  // intentionally creating empty sections
+		for (const auto& section : configSections) 
+		{
+			sections[section.name];
+			for (const auto& item : section.items)
+				useDefaultValue(section.name, item.name, item);
+				
 		}
 
 		std::cout << "Setting validation rules" << std::endl;
