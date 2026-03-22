@@ -58,71 +58,7 @@ const std::string& iniInstructions()
 	
 	return text;
 }
-
-
-std::string generateConfig(const std::vector<ConfigSection>& sections) 
-{
-	std::string config_content = "# Configuration file generated automatically\n\n";
-
-	for (const auto& section : sections) 
-	{
-		config_content += "[" + section.name + "]\n";
-		for (const auto& item : section.items) 
-		{
-			config_content += std::string(item.name) + " = " + std::string(item.defaultValue)
-				+ " # type: " + std::string(item.type)
-				+ ", description: " + std::string(item.description);
-			if (item.validationRule) 
-			{
-				config_content += " (validationRule: " + item.validationRule->toString() + ")";
-			}
-			if(item.persistence == Persistence::Volatile)
-			{
-				config_content += " [VOLATILE: must be supplied via CLI every run.]";
-			}
-			config_content += "\n";
-		}
-		config_content += "\n";
-	}
-
-	config_content += iniInstructions();
-
-	return config_content;
-}
 	
-    
-void generateConfigFileIfNeeded(
-	const std::string& filePath,
-	const std::vector<ConfigSection>& configSections)
-{
-	std::ifstream file(filePath);
-	
-	// TODO (IHT): Update to boost::filesystem::exists(filePath)
-	if (file.is_open()) {
-		std::cout << "Configuration file already exists. Skipping generation." << std::endl;
-		return;
-	}
-
-
-	if (!validateConfig(configSections)) 
-	{
-		throw std::runtime_error("Invalid configuration detected at runtime");
-	}
-
-	std::string configContent = generateConfig(configSections);
-
-	std::ofstream configFile(filePath);
-	if (configFile.is_open()) 
-	{
-		configFile << configContent;
-		configFile.close();
-	} 
-	else 
-	{
-		throw std::runtime_error("Unable to open file for writing: " + filePath);
-	}
-}
-
 	
 void loadConfigFromFile(
 	const std::string& filePath,

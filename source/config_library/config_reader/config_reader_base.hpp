@@ -50,11 +50,6 @@ public:
 protected:
 	//should just validate schema really...
 	void initialize(const std::vector<ConfigSection>& configSections);
-	
-	// Persistence path
-    void saveConfig(const std::vector<ConfigSection>& configSections,
-					const std::string& path,
-					const std::string& instructions_footer = "") const;
 					
 	//TODO (IHT 20260228): Determine how this and the function above should be handled. this is a INI/Persistence only concern.
 	void assertNoVolatileFieldsInINIOnlyReader(const std::vector<ConfigSection>& configSections) const;

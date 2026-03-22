@@ -51,7 +51,7 @@ private:
 		std::true_type) const
 	{
 		static_cast<const IPersistenceReader*>(this)
-			->persistSave(withoutVolatileItems(configSections));
+			->persistSave(configSections);
 	}
 	void handleSave(
 		const std::vector<ConfigSection>&,
@@ -75,7 +75,7 @@ private:
 		std::true_type) const
 	{
 		static_cast<const IPersistenceReader*>(this)
-			->persistExport(exportPath, withoutVolatileItems(configSections));
+			->persistExport(exportPath, configSections);
 	}
 	void handleExport(
 		const std::string&,
@@ -223,7 +223,7 @@ private:
 	
 	// returns a copy of configSections with all volatile items stripped out.
 	// used by persistSave and persistExport so volatile fields are never written
-	// to any file
+	// to any file [(IHT 2026.03.22): currently not used anywhere , but maybe bring back someday?]
 	static std::vector<ConfigSection> withoutVolatileItems(
 		const std::vector<ConfigSection>& configSections)
 	{
@@ -298,7 +298,7 @@ private:
 			std::cout
 				<< "\nFlat lookup is ON: use --key=value as a shorthand instead of"
 				   " --Section.key=value.\n"
-				<< "Keys marked [qualified only], in the schema below, collide with another section and"
+				<< "Keys with a trailing *, in the schema below, collide with another section and"
 				   " always require --Section.key=value.\n";
 		else
 			std::cout
@@ -316,12 +316,13 @@ private:
 				std::ostringstream line;
 				line << "  --" << section.name << "." <<item.name
 					 << "=<" << item.type << ">";
-				//std::cout << line.str();
-				
+					 
 				if (keyMap.ambiguousKeysWhenFlat.find(item.name) != keyMap.ambiguousKeysWhenFlat.end())
 				{
-					line << "  [qualified only]";
+					line << "*";
 				}
+				//std::cout << line.str();
+				
 				
 				//line << "\n";
 				
@@ -331,6 +332,7 @@ private:
 				std::cout << lineStr << std::string(pad > 0 ? pad : 1, ' ');
 				
 				std::cout << item.description;
+				
 				
 				if(isVolatile)
 					std::cout << "  [REQUIRED]";

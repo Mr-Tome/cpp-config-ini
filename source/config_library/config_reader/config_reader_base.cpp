@@ -1,5 +1,3 @@
-#include <fstream>
-#include <sstream>
 #include <typeinfo>
 #include <iostream>
 #include <stdexcept>
@@ -150,48 +148,6 @@ void ConfigReaderBase::useDefaultValue(const std::string& section,
 								   const ConfigItem& item) 
 {
 	Internal::applyDefaultValue(section, key, item, this->sections);
-}
-	
-void ConfigReaderBase::saveConfig(
-		const std::vector<ConfigSection>& configSections,
-		const std::string& path,
-		const std::string& instructions_footer) const 
-{
-	std::cout << "Saving the current configuration to: " <<path<< std::endl;
-	std::ofstream file(path);
-	if (!file.is_open()) 
-	{
-		throw std::runtime_error("Unable to open file for writing: " + path);
-	}
-
-	file << "# Configuration file\n\n";
-	for (const auto& default_section : configSections) 
-	{
-		file << "[" << default_section.name << "]\n";
-		for (const auto& item : default_section.items) 
-		{
-			std::string currentValue = sections.at(default_section.name).getValues().at(item.name)->toString();
-			file << item.name << " = " << currentValue
-				 << " # type: " << item.type
-				 << ", description: " << item.description;
-			
-			if (item.validationRule) 
-			{
-				file << " (validationRule: " << item.validationRule->toString() << ")";
-			}
-			if(item.persistence == Persistence::Volatile)
-			{
-				file << " [VOLATILE: must be supplied via CLI every run.]";
-			}
-			file << "\n";
-		}
-		file << "\n";
-	}
-	
-	if(!instructions_footer.empty())
-		file << instructions_footer;
-	
-	std::cout << "Finished saving the current configuration to: " << path<< std::endl;
 }
 
 } // namespace ConfigLib

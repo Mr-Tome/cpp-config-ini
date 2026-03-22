@@ -1,5 +1,7 @@
 #pragma once
-
+#include <fstream>
+#include <sstream>
+#include <iostream>
 #include "config_reader_base.hpp"
 #include "PersistenceReaders/IPersistenceReader.hpp"
 
@@ -7,13 +9,6 @@ namespace ConfigLib
 {
 
 const std::string& iniInstructions();
-
-std::string generateConfig(const std::vector<ConfigSection>& sections); // TODO (IHT 20260308) i think i should make this virtual apart of a new PersistenceReader base class...
-
-void generateConfigFileIfNeeded(
-	const std::string& filePath,
-	const std::vector<ConfigSection>& configSections);
-	
 
 void loadConfigFromFile(
 	const std::string& filePath,
@@ -29,14 +24,14 @@ public:
 	INIConfigReader()
 	{
 		const Derived& d = static_cast<Derived&>(*this);
-		
 		auto mergedSections = mergeDuplicateSections(d.getConfigSections());
 		
 		if(!HasCLI)
 			assertNoVolatileFieldsInINIOnlyReader(mergedSections);
-		generateConfigFileIfNeeded(d.getConfigFilePath(), mergedSections);
+			
 		this->filepath = d.getConfigFilePath();
 		initialize(mergedSections);
+		generateConfigFileIfNeeded(d.getConfigFilePath(), mergedSections);
 		loadConfigFromFile(this->filepath, mergedSections, this->sections);
 	}
 	
@@ -44,17 +39,12 @@ public:
 	{
 		const Derived& d = static_cast<const Derived&>(*this);
 		auto mergedSections = mergeDuplicateSections(d.getConfigSections());
-		ConfigReaderBase::saveConfig(mergedSections,
-									 this->filepath,
-									 iniInstructions());
+		writeToFile(mergedSections, this->filepath);
 	}
 	
 	void persistSave(const std::vector<ConfigSection>& configSections) const override
 	{
-		ConfigReaderBase::saveConfig(
-			configSections,
-			this->filepath,
-			iniInstructions());
+		writeToFile(configSections, this->filepath);
 	}
 
 	void persistReset() override
@@ -73,12 +63,101 @@ public:
 		const std::string& exportPath,
 		const std::vector<ConfigSection>& configSections) const override
 	{
-		ConfigReaderBase::saveConfig(
-			configSections,
-			exportPath,
-			iniInstructions());
+		writeToFile(configSections, exportPath);
 		std::cout << "--export: wrote config to '" << exportPath << "'." << std::endl;
 	}
+private:
+
+void generateConfigFileIfNeeded(
+	const std::string& filePath,
+	const std::vector<ConfigSection>& mergedSections)
+{
+	std::ifstream file(filePath);
+	
+	// TODO (IHT): Update to boost::filesystem::exists(filePath)
+	if (file.is_open()) {
+		std::cout << "Configuration file already exists. Skipping generation." << std::endl;
+		return;
+	}
+
+	if (!validateConfig(mergedSections)) 
+	{
+		throw std::runtime_error("Invalid configuration detected at runtime");
+	}
+
+	std::string configContent = formatINI(mergedSections,
+			[](const ConfigSection&, const ConfigItem& item)
+            {
+                return item.defaultValue;
+            });
+
+	std::ofstream configFile(filePath);
+	if (configFile.is_open()) 
+	{
+		configFile << configContent;
+		configFile.close();
+	} 
+	else 
+	{
+		throw std::runtime_error("Unable to open file for writing: " + filePath);
+	}
+}
+
+void writeToFile(
+        const std::vector<ConfigSection>& configSections,
+        const std::string& path) const
+{
+	std::cout << "Saving the current configuration to: " << path << std::endl;
+
+	std::string content = formatINI(
+		configSections,
+		[this](const ConfigSection& section, const ConfigItem& item)
+		{
+			return this->sections.at(section.name).getValues().at(item.name)->toString();
+		});
+
+	std::ofstream out(path);
+	if (!out.is_open())
+		throw std::runtime_error("Unable to open file for writing: " + path);
+	out << content;
+
+	std::cout << "Finished saving configuration to: " << path << std::endl;
+}
+
+std::string formatINI(
+	const std::vector<ConfigSection>& configSections,
+	std::function<std::string(const ConfigSection&, const ConfigItem&)> valueSource) const
+{
+	std::string config_content = "# Configuration file\n\n";
+
+	for (const auto& section : configSections) 
+	{
+		config_content += "[" + section.name + "]\n";
+		for (const auto& item : section.items) 
+		{
+			if (item.persistence == Persistence::Volatile)
+			{
+				config_content += "# " + item.name + " = <not stored>"
+					+ " # type: " + item.type
+					+ ", description: " + item.description
+					+ " [VOLATILE: supply via CLI every run]\n";
+				continue;
+			}
+			config_content += item.name + " = " + valueSource(section, item)
+				+ " # type: " + item.type
+				+ ", description: " + item.description;
+			if (item.validationRule)
+				config_content += " (validationRule: " + item.validationRule->toString() + ")";
+			
+			config_content += "\n";
+		}
+		config_content += "\n";
+	}
+
+	config_content += iniInstructions();
+
+	return config_content;
+}
 };
 
 } // namespace ConfigLib
