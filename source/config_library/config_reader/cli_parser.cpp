@@ -111,6 +111,11 @@ void parseIntoParsedCLIArgs(
 		const std::string flatKey = body.substr(0,eqPos);
 		const std::string value = body.substr(eqPos+1);
 		
+		if(flatKey.empty())
+			throw std::runtime_error(
+				"Malformed argument '" + arg + "': key name is empty. "
+				"Expected --key=<value> or --Section.key=<value>.");
+		
 		if (keyMap.ambiguousKeysWhenFlat.find(flatKey) != keyMap.ambiguousKeysWhenFlat.end())
 			throw std::runtime_error(
 				"Ambiguous key '" + flatKey + "' in argument '" + arg + "': "
@@ -139,17 +144,17 @@ void parseIntoParsedCLIArgs(
 	const std::string section = body.substr(0, dotPos);
 	const std::string key = body.substr(dotPos+1, eqPos-dotPos-1);
 	const std::string value = body.substr(eqPos +1);
-	
-	if(section.empty())
-		throw std::runtime_error(
-            "Malformed argument '" + arg + "': section name is empty. "
-            "Expected --section.key=value.");
     
     if(key.empty())
 		throw std::runtime_error(
             "Malformed argument '" + arg + "': key name is empty. "
-            "Expected --"+section+".key=value.");
-            
+            "Expected --"+section+".key=<value>.");
+    
+    if(key.find('.')!= std::string::npos)
+		throw std::runtime_error(
+			"Malformed argument '" + arg + "': key '"+key+"' contains a '.'."
+			"Expected --" + section + ".key=<value>.");
+    
 	const auto sectionIt = schemaLookup.find(section);
 	if(sectionIt ==schemaLookup.end())
 		throw std::runtime_error(
@@ -186,6 +191,15 @@ void countAndFindOwnerOfConfigItems(
 	}
 }
 
+const std::unordered_set<std::string>& reservedFlatKeys()
+{
+	static const std::unordered_set<std::string> keys = {
+		"help", "print", "save", "reset", "diff",
+		"flat", "config", "export"
+	};
+	return keys;
+}
+
 } // namespace anonymous
 	
 	
@@ -213,10 +227,12 @@ CLIKeyMap buildCLIKeyMap(const std::vector<ConfigSection>& sections)
 				result.flatToQualified[item.name] = pair;
 				result.qualifiedToFlat[pair] = item.name;
 			}
-			else if (count > 1 && !ownerIsEmpty)
+			else if ((count > 1 && !ownerIsEmpty) || 
+					 reservedFlatKeys().count(item.name))
 			{
 				result.ambiguousKeysWhenFlat.insert(item.name);
 			}
+			
 		}
 	}
 	

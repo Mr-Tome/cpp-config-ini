@@ -72,11 +72,11 @@ struct Simple_CLI_INI
 		std::cout << "\n--- Simple_CLI_INIConfig (CLI-INI-only) ---" << std::endl;
 		try
 		{
-			std::cout << "verbosity:   " << config.getValue<int>   ("", "flat")   << std::endl;
-			std::cout << "num_threads: " << config.getValue<int>   ("", "help") << std::endl;
-			std::cout << "timeout_s:   " << config.getValue<double>("Run", "timeout_s")   << std::endl;
-			std::cout << "dry_run:     " << config.getValue<bool>  ("Run", "dry_run")     << std::endl;
-			std::cout << "run_id:      '" << config.getValue<std::string>("Run", "run_id") << "'" << std::endl;
+			std::cout << "verbosity:   " << config.getValue<std::string>   ("", "flat")   << std::endl;
+			std::cout << "num_threads: " << config.getValue<bool>   ("", "help") << std::endl;
+			std::cout << "timeout_s:   " << config.getValue<double>("section2", "timeout_s")   << std::endl;
+			std::cout << "dry_run:     " << config.getValue<bool>  ("section1", "dry_run")     << std::endl;
+			std::cout << "run_id:      '" << config.getValue<std::string>("section1", "run_id") << "'" << std::endl;
 		}
 		catch (const std::exception& e)
 		{
