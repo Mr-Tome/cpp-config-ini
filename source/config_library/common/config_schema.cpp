@@ -1,5 +1,6 @@
 #include <unordered_map>
 #include <iostream>
+#include <algorithm>
 #include "config_schema.hpp"
 #include "config_value.hpp"
 
@@ -47,6 +48,37 @@ bool validateConfig(const std::vector<ConfigSection>& sections)
 	return allValid;
 }
 
+std::vector<ConfigSection> mergeDuplicateSections(const std::vector<ConfigSection>& sections)
+{
+	std::vector<ConfigSection> merged;
+	std::unordered_map<std::string, size_t> indexByName;
+	
+	for (const auto& section : sections)
+	{
+		auto it = indexByName.find(section.name);
+		if (it == indexByName.end())
+		{
+			indexByName[section.name] = merged.size();
+			merged.push_back(section);
+		}
+		else
+		{
+			ConfigSection& target = merged[it->second];
+			for (const auto& item : section.items)
+			{
+				const bool duplicate = std::any_of(
+					target.items.begin(), target.items.end(),
+					[&](const ConfigItem& existing){ return existing.name == item.name; });
+				if (duplicate)
+					throw std::runtime_error(
+						"Duplicate ConfigItem '" + section.name + "." + item.name
+						+ "' found when merging sections with the same name.");
+				target.items.push_back(item);
+			}
+		}
+	}
+	return merged;
+}
 
 // compile-time check
 static_assert(validateConfigStructure(), 

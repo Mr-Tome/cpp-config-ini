@@ -29,18 +29,22 @@ public:
 	INIConfigReader()
 	{
 		const Derived& d = static_cast<Derived&>(*this);
+		
+		auto mergedSections = mergeDuplicateSections(d.getConfigSections());
+		
 		if(!HasCLI)
-			assertNoVolatileFieldsInINIOnlyReader(d.getConfigSections());
-		generateConfigFileIfNeeded(d.getConfigFilePath(), d.getConfigSections());
+			assertNoVolatileFieldsInINIOnlyReader(mergedSections);
+		generateConfigFileIfNeeded(d.getConfigFilePath(), mergedSections);
 		this->filepath = d.getConfigFilePath();
-		initialize(d.getConfigSections());
-		loadConfigFromFile(this->filepath, d.getConfigSections(), this->sections);
+		initialize(mergedSections);
+		loadConfigFromFile(this->filepath, mergedSections, this->sections);
 	}
 	
 	void saveConfig() const
 	{
 		const Derived& d = static_cast<const Derived&>(*this);
-		ConfigReaderBase::saveConfig(d.getConfigSections(),
+		auto mergedSections = mergeDuplicateSections(d.getConfigSections());
+		ConfigReaderBase::saveConfig(mergedSections,
 									 this->filepath,
 									 iniInstructions());
 	}

@@ -97,4 +97,6 @@ struct ConfigSection
 };
 
 bool validateConfig(const std::vector<ConfigSection>& sections);
+
+std::vector<ConfigSection> mergeDuplicateSections(const std::vector<ConfigSection>& sections);
 } // namespace ConfigLib

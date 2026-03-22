@@ -15,7 +15,8 @@ public:
 	NoPersistenceReader()
 	{
 		Derived& d = static_cast<Derived&>(*this);
-		validateForCLI(d.getConfigSections());
+		auto mergedSections = mergeDuplicateSections(d.getConfigSections());
+		validateForCLI(mergedSections);
 	}
 };
 
@@ -120,7 +121,7 @@ private:
 	void init()
 	{
 		const Derived& d = static_cast<Derived&>(*this);
-		const auto configSections = d.getConfigSections();
+		const auto configSections = mergeDuplicateSections(d.getConfigSections());
 		
 		const CLIKeyMap keyMap = buildCLIKeyMap(configSections);
 		
