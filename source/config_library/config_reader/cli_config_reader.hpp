@@ -18,6 +18,9 @@ public:
 		auto mergedSections = mergeDuplicateSections(d.getConfigSections());
 		validateForCLI(mergedSections);
 	}
+	
+	explicit NoPersistenceReader(const std::string&) //for pre-parsing for config path
+				: NoPersistenceReader(){}
 };
 
 //cli wrapper class. 
@@ -32,7 +35,8 @@ public:
 		init();
 	}
 	
-	CLIFeatureLayer(int argc, char* argv[]) : Base()
+	CLIFeatureLayer(int argc, char* argv[]) 
+		: Base(preParseArgsForConfigPath(argc, argv))
 	{
 		std::cout << "CLIFeatureLayer argc & argv constructor called" << std::endl;
 		for (int i = 0; i < argc; ++i) rawCLIArgs.emplace_back(argv[i]);
@@ -147,12 +151,6 @@ private:
 		const std::vector<ConfigSection>& configSections,
 		const ParsedCLIArgs& parsed)
 	{
-		// TODO (IHT 2026.03.14): --config requires overriding developers getConfigFilePath before Base() runs in the initializer list.
-		// but rawCLIArgs isnt popuilated/parsed until constructor body. have to figure out how to defer...
-		// also, config_path is really only a Persistence store thing...
-		if (!parsed.flags.config_path.empty())
-			std::cerr << "Warning: --config= is not yet supported and has been ignored.\n";
-	
 		if (parsed.flags.print)
 			printConfig(configSections);
 		

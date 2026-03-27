@@ -275,4 +275,25 @@ ParsedCLIArgs parseCLIArgs(
 	return result;
 }
 
+std::string preParseArgsForConfigPath(int argc, char* argv[])
+{
+	std::string result;
+	const std::string configPrefix = "--config=";
+	for (int i = 0; i < argc; ++i) 
+	{
+		auto arg = std::string(argv[i]);
+		
+		if(arg.substr(0,configPrefix.size()) == configPrefix)
+		{
+			result = arg.substr(configPrefix.size());
+			if(result.empty())
+				throw std::runtime_error(
+					"--config= requires a file path. Example: --config=my_settings.ini");
+			
+			break;
+		}
+	}
+	return result;
+}
+
 } // namespace ConfigLib

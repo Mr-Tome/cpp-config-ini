@@ -31,9 +31,24 @@ public:
 			
 		this->filepath = d.getConfigFilePath();
 		initialize(mergedSections);
-		generateConfigFileIfNeeded(d.getConfigFilePath(), mergedSections);
+		generateConfigFileIfNeeded(this->filepath, mergedSections);
 		loadConfigFromFile(this->filepath, mergedSections, this->sections);
 	}
+	
+	explicit INIConfigReader(const std::string& configFilePathOverride)
+	{
+		const Derived& d = static_cast<Derived&>(*this);
+		auto mergedSections = mergeDuplicateSections(d.getConfigSections());
+		
+		if(!HasCLI)
+			assertNoVolatileFieldsInINIOnlyReader(mergedSections);
+			
+		this->filepath = configFilePathOverride.empty() ? d.getConfigFilePath() : configFilePathOverride;
+		initialize(mergedSections);
+		generateConfigFileIfNeeded(this->filepath, mergedSections);
+		loadConfigFromFile(this->filepath, mergedSections, this->sections);
+	}
+	
 	
 	void saveConfig() const
 	{

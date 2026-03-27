@@ -52,4 +52,6 @@ ParsedCLIArgs parseCLIArgs(
 	const std::vector<ConfigSection>& sections,
 	const CLIKeyMap& keyMap,
 	bool flatEnabled);
+	
+std::string preParseArgsForConfigPath(int argc, char* argv[]);
 } // namespace ConfigLib
