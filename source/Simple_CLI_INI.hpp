@@ -5,7 +5,7 @@
 class Simple_CLI_INIConfig : public ConfigLib::ConfigReader<Simple_CLI_INIConfig, ConfigLib::CLI, ConfigLib::INI>
 {
 public:
-	Simple_CLI_INIConfig(int argc, char* argv[]): ConfigLib::ConfigReader<Simple_CLI_INIConfig, ConfigLib::CLI, ConfigLib::INI>(argc, argv)
+	Simple_CLI_INIConfig(int argc, char* argv[]) : ConfigLib::ConfigReader<Simple_CLI_INIConfig, ConfigLib::CLI, ConfigLib::INI>(argc, argv)
 	{
 		std::cout<<"SimpleCLI constructor called" << std::endl;
 	}

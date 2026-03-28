@@ -64,13 +64,13 @@ private:
 		std::cerr << "Warning: --save has no effect because no persistence layer was configured.\n";
 	}
 
-	void handleReset(std::true_type)
+	void handleDelete(std::true_type)
 	{
-		static_cast<IPersistenceReader*>(this)->persistReset();
+		static_cast<IPersistenceReader*>(this)->persistDelete();
 	}
-	void handleReset(std::false_type)
+	void handleDelete(std::false_type)
 	{
-		std::cerr << "Warning: --reset has no effect because no persistence layer configured.\n";
+		std::cerr << "Warning: --delete has no effect because no persistence layer configured.\n";
 	}
 	
 	void handleExport(
@@ -90,15 +90,16 @@ private:
 	}
 	
 	
-	void printPersistenceFlags(std::true_type) const
+	void printPersistenceFlags(std::true_type, bool hasAVolatile) const
 	{
 		std::cout
-			<< "  --save                            Write current state to config file (volatile fields skipped)\n"
-			<< "  --reset                           Delete config file; defaults regenerate on next run\n"
+			<< "  --save                            Write current state to config file " 
+				<< (hasAVolatile ? "[REQUIRED fields skipped]" : "" ) <<"\n"
+			<< "  --delete                          Delete config file\n"
 			<< "  --export=<path>                   Write the config to a new file\n"
 			<< "  --config=<path>                   Use an alternative config file\n";
 	}
-	void printPersistenceFlags(std::false_type) const {}
+	void printPersistenceFlags(std::false_type, bool) const {}
 	
 	bool isFlatEnabled(const Derived& d)
 	{
@@ -157,8 +158,8 @@ private:
 		if (parsed.flags.save)
 			handleSave(configSections, HasPersistence{});
 
-		if (parsed.flags.reset)
-			handleReset(HasPersistence{});
+		if (parsed.flags._delete)
+			handleDelete(HasPersistence{});
 
 		if (!parsed.flags.export_path.empty())
 			handleExport(parsed.flags.export_path, configSections, HasPersistence{});
@@ -302,7 +303,9 @@ private:
 			std::cout
 				<< "\nFlat lookup is OFF: always use --Section.key=value.\n"
 				<< "Enable with --flat=true.\n";
-			
+		
+		bool hasAVolatile = false;
+		
 		for (const auto& section : configSections)
 		{
 			std::cout << "\n[" << section.name <<"]\n";
@@ -333,7 +336,10 @@ private:
 				
 				
 				if(isVolatile)
+				{
 					std::cout << "  [REQUIRED]";
+					hasAVolatile = true;
+				}
 				else
 					std::cout << "  [default: " << item.defaultValue << "]";
 					
@@ -349,10 +355,10 @@ private:
 		<< "  --help                            Print this message and exit\n"
 		<< "  --print                           Dump the resolved config after all overrides\n"
 		<< "  --diff                            Show values that differ from schema defaults\n"
-		<< "  --flat=<bool>                     Enable or disable flat key lookup (e.g. --flat=true)"
-			" (current default: "<< (flatEnabled ? "true": "false") << ")\n";
+		<< "  --flat=<bool>                     Enable or disable flat key lookup, e.g. --flat=true, "
+			" [default: "<< (flatEnabled ? "true": "false") << "]\n";
 		
-		printPersistenceFlags(HasPersistence{});
+		printPersistenceFlags(HasPersistence{}, hasAVolatile);
 		std::cout << "\n";
 	}
 	

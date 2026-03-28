@@ -150,9 +150,9 @@ struct Color : public ConfigLib::ConfigType<Color>
 	//all 3 methods, so we dont get compile time errors...
 };
 
-struct ColorConfigIniClass : public ConfigLib::ConfigReader<ColorConfigIniClass, ConfigLib::INI>
+struct ColorConfigIniClass : public ConfigLib::ConfigReader<ColorConfigIniClass, ConfigLib::INI, ConfigLib::CLI>
 {
-	ColorConfigIniClass()
+	ColorConfigIniClass(int argc, char* argv[]) : ConfigLib::ConfigReader<ColorConfigIniClass, ConfigLib::INI, ConfigLib::CLI>(argc, argv)
 	{
         std::cout << "ColorConfigIniClass called" << std::endl;
 	}
@@ -188,9 +188,9 @@ struct ColorConfigIniClass : public ConfigLib::ConfigReader<ColorConfigIniClass,
 	}
 };
  
-void test_colors()
+void test_colors(int argc, char* argv[])
 {
-	ColorConfigIniClass my_color_config;
+	ColorConfigIniClass my_color_config(argc, argv);
 	
 	/////testing the getter for Color's  ConfigType
 	Color red =  my_color_config.getValue<Color>("FirstColor","red");
@@ -232,13 +232,13 @@ void do_monte_carlo()
 int main(int argc, char* argv[]) {
     std::cout << "Program started" << std::endl;
     
-    do_specific_algorithm_config();
-    test_colors();
+    //do_specific_algorithm_config();
+    test_colors(argc, argv);
     
-    do_monte_carlo();
+    //do_monte_carlo();
     
     //auto test = SimpleCLI(argc, argv);
-    auto test2 = Simple_CLI_INI(argc, argv);
+    //auto test2 = Simple_CLI_INI(argc, argv);
 	
     std::cout << "Program finished" << std::endl;
     std::cout.flush(); 

@@ -62,15 +62,15 @@ public:
 		writeToFile(configSections, this->filepath);
 	}
 
-	void persistReset() override
+	void persistDelete() override
 	{
 		if (std::remove(this->filepath.c_str()) != 0)
 		{
 			throw std::runtime_error(
-				"--reset: failed to delete config file: " + this->filepath
+				"--delete: failed to delete config file: " + this->filepath
 				+ ". Does it exist?");
 		}
-		std::cout << "--reset: deleted '" << this->filepath
+		std::cout << "--delete: deleted '" << this->filepath
 		          << "'. Defaults will regenerate on the next run." << std::endl;
 	}
 

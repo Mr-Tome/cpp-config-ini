@@ -13,7 +13,7 @@ struct LibProvidedCLIFlags
 	bool help = false; // prints out how CLI instructions 
 	bool print = false; // print outs the configuration 
 	bool save = false; // writes current state back to the Persistence Reader (INI/JSON/etc.)
-	bool reset = false; // deliete the INI file so it regenerates from the default.
+	bool _delete = false; // deliete the INI file so it regenerates from the default.
 	bool diff = false; // show the values that differ from the schema defaults
 	
 	

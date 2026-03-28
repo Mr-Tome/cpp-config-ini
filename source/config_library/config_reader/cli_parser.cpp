@@ -32,7 +32,7 @@ bool tryParseLibProvidedCLIFlags(
 	if(arg == "--help") {flags.help = true; return true;}
 	if(arg == "--print") {flags.print = true; return true;}
 	if(arg == "--save") {flags.save = true; return true;}
-	if(arg == "--reset") {flags.reset = true; return true;}
+	if(arg == "--delete") {flags._delete = true; return true;}
 	if(arg == "--diff") {flags.diff = true; return true;}
 	
 	const std::string flatPrefix = "--flat=";
@@ -194,7 +194,7 @@ void countAndFindOwnerOfConfigItems(
 const std::unordered_set<std::string>& reservedFlatKeys()
 {
 	static const std::unordered_set<std::string> keys = {
-		"help", "print", "save", "reset", "diff",
+		"help", "print", "save", "delete", "diff",
 		"flat", "config", "export"
 	};
 	return keys;
