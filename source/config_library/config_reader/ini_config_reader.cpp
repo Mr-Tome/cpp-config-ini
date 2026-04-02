@@ -1,11 +1,11 @@
 #include <fstream>
-#include <sstream>
-#include <typeinfo>
 #include <iostream>
 #include <stdexcept>
-#include <algorithm>
 #include "ini_config_reader.hpp"
 #include "../common/config_lib_internal_utility.hpp"
+#include "../common/type_parser.hpp"
+#include "../common/schema_evolver.hpp"
+#include "../common/config_value.hpp"
 
 namespace ConfigLib 
 {
@@ -58,36 +58,27 @@ const std::string& iniInstructions()
 	
 	return text;
 }
-	
-	
-void loadConfigFromFile(
-	const std::string& filePath,
-	const std::vector<ConfigSection>& configSections,
-	std::unordered_map<std::string, ConfigSectionStore>& sections) 
+
+
+bool parseRawINI(
+    const std::string& filePath,
+    std::map<std::string, std::map<std::string, std::string>>& rawConfigOut)
 {
-	std::cout << "Calling loadConfig()" << std::endl;
-		
 	std::ifstream file(filePath);
 	if (!file.is_open()) 
 	{
 		std::cerr << "Unable to open file: " << filePath << std::endl;
-		return;
+		return false;
 	}
-
+	
 	std::string current_section;
 	std::string line;
 	
-	std::unordered_map<std::string,
-		std::unordered_map<std::string, const ConfigItem*>> schemaLookup;
-		
-	for (const auto& section : configSections)
-		for (const auto& item : section.items)
-			schemaLookup[section.name][item.name] = &item;
-			
 	while (std::getline(file, line)) 
 	{
 		line = ConfigLib::Internal::trim(line);
-		if (line.empty() || line[0] == '#') continue;
+		if (line.empty() || line[0] == '#') 
+			continue;
 
 		if (line[0] == '[' && line.back() == ']') 
 		{
@@ -95,54 +86,95 @@ void loadConfigFromFile(
 			continue;
 		} 
 		
-		auto pos = line.find('=');
+		const auto eqPos = line.find('=');
 		
-		if(pos == std::string::npos) continue;
+		if(eqPos == std::string::npos) 
+			continue;
 		
-		std::string key = ConfigLib::Internal::trim(line.substr(0, pos));
-		std::string value = line.substr(pos + 1);
+		if(current_section.empty()) 
+			continue;
+		
+		std::string key = ConfigLib::Internal::trim(line.substr(0, eqPos));
+		std::string value = line.substr(eqPos + 1);
 		
 		// remove the comments from the value
-		size_t commentPos = value.find('#'); //TODO: if a user puts a '#' in a std::string uh oh...
+		const size_t commentPos = value.find('#'); //TODO: if a user puts a '#' in a std::string uh oh...
 		if (commentPos != std::string::npos) 
-		{
 			value = value.substr(0, commentPos);
-		}
+			
 		value = ConfigLib::Internal::trim(value);
 		
-		if(current_section.empty()) continue;
-		
-		auto sectionIt = schemaLookup.find(current_section);
-		if (sectionIt == schemaLookup.end()) continue;
-		
-		auto itemIt = sectionIt->second.find(key);
-		if (itemIt == sectionIt->second.end()) continue;
-		const ConfigItem& item = *itemIt->second;
-		
-		try 
-		{
-			auto& registry = TypeRegistry::instance();
-			auto parsedValue = registry.parseValue(item.type, value);
-			
-			//if there's a rule, let's validate against it.
-			if (!item.validationRule || (*item.validationRule)(*parsedValue)) 
-			{
-				sections[current_section].getValues()[key] = parsedValue;
-			} 
-			else 
-			{
-				std::cerr << "Validation failed for " << current_section << "." << key 
-						  << ". Using default value." << std::endl;
-				Internal::applyDefaultValue(current_section, key, item, sections);
-			}
-		} 
-		catch (const std::exception& e) 
-		{
-			std::cerr << "Error processing " << current_section << "." << key 
-					  << ": " << e.what() << ". Using default value." << std::endl;
-			Internal::applyDefaultValue(current_section, key, item, sections);
-		}			
+		rawConfigOut[current_section][key] = value;
 	}
+	return true;
+}
+	
+void loadConfigFromFile(
+	const std::string& filePath,
+	const std::vector<ConfigSection>& configSections,
+	std::unordered_map<std::string, ConfigSectionStore>& sections) 
+{
+	std::cout << "Calling loadConfigFromFile()" << std::endl;
+		
+	std::map<std::string, std::map<std::string, std::string>> rawINI;
+	if (!parseRawINI(filePath, rawINI)) 
+	{
+		std::cerr << "Unable to open file: " << filePath << std::endl;
+		return;
+	}
+
+	//TODO (IHT2026.04.02): consolidate schemaLookup with schema_evolver.cpp
+	// sectionName, -> configItemName -> ConfigItem*
+	std::unordered_map<std::string,
+		std::unordered_map<std::string, const ConfigItem*>> schemaLookup;
+		
+	for (const auto& section : configSections)
+		for (const auto& item : section.items)
+			schemaLookup[section.name][item.name] = &item;
+			
+	auto& registry = TypeRegistry::instance();
+	
+	for(const auto& rawSection : rawINI)
+	{
+		const auto sectionIt = schemaLookup.find(rawSection.first);
+		if (sectionIt == schemaLookup.end()) 
+			continue;
+			
+		for (const auto& rawItem : rawSection.second)
+		{
+			const auto itemIt = sectionIt->second.find(rawItem.first);
+			if (itemIt == sectionIt->second.end()) 
+				continue;
+				
+			const ConfigItem& item = *itemIt->second;
+			const auto& value = rawItem.second;
+			try 
+			{
+				auto parsedValue = registry.parseValue(item.type, value);
+				
+				//if there's a rule, let's validate against it.
+				if (!item.validationRule || (*item.validationRule)(*parsedValue)) 
+				{
+					sections[rawSection.first].getValues()[rawItem.first] = parsedValue;
+				} 
+				else 
+				{
+					std::cerr << "Validation failed for " 
+							  << rawSection.first << "." << rawItem.first 
+							  << ". Using default value." << std::endl;
+					Internal::applyDefaultValue(rawSection.first, rawItem.first, item, sections);
+				}
+			} 
+			catch (const std::exception& e) 
+			{
+				std::cerr << "Error processing " 
+						  << rawSection.first << "." << rawItem.first
+						  << ": " << e.what() << ". Using default value." << std::endl;
+				Internal::applyDefaultValue(rawSection.first, rawItem.first, item, sections);
+			}	
+		}
+	}
+				
 	std::cout << "Config loaded" << std::endl;
 }
   	

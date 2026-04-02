@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <map>
 #include "config_reader_base.hpp"
 #include "PersistenceReaders/IPersistenceReader.hpp"
 
@@ -14,6 +15,10 @@ void loadConfigFromFile(
 	const std::string& filePath,
 	const std::vector<ConfigSection>& configSections, // from derived type 
 	std::unordered_map<std::string, ConfigSectionStore>& sections);//from store	
+
+bool parseRawINI(
+    const std::string& filePath,
+    std::map<std::string, std::map<std::string, std::string>>& rawConfig);
 	
 //only thing this should be doing is calling derived class initialize and saveConfig
 template<typename Derived, bool HasCLI = false>
