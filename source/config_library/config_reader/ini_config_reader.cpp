@@ -116,7 +116,7 @@ void loadConfigFromFile(
 {
 	std::cout << "Calling loadConfigFromFile()" << std::endl;
 		
-	std::map<std::string, std::map<std::string, std::string>> rawINI;
+	RawConfigMap rawINI;
 	if (!parseRawINI(filePath, rawINI)) 
 	{
 		std::cerr << "Unable to open file: " << filePath << std::endl;

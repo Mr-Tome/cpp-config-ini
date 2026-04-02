@@ -5,6 +5,7 @@
 #include <map>
 #include "config_reader_base.hpp"
 #include "PersistenceReaders/IPersistenceReader.hpp"
+#include "../common/schema_evolver.hpp"
 
 namespace ConfigLib 
 {
@@ -18,42 +19,44 @@ void loadConfigFromFile(
 
 bool parseRawINI(
     const std::string& filePath,
-    std::map<std::string, std::map<std::string, std::string>>& rawConfig);
+    RawConfigMap& rawConfig);
+
 	
-//only thing this should be doing is calling derived class initialize and saveConfig
+//only thing this should be doing is calling saveConfig
 template<typename Derived, bool HasCLI = false>
 class INIConfigReader : public ConfigReaderBase, public IPersistenceReader
 {
-	
+	void init(const Derived& d,
+			  const std::string& configFilePath)
+	{
+		auto mergedSections = mergeDuplicateSections(d.getConfigSections());
+		
+		if(!HasCLI)
+			assertNoVolatileFieldsInINIOnlyReader(mergedSections);
+			
+		this->filepath = configFilePath.empty() ? d.getConfigFilePath() : configFilePath;
+		initialize(mergedSections);
+		generateConfigFileIfNeeded(this->filepath, mergedSections);
+        runSchemaEvolution(d, mergedSections);
+		loadConfigFromFile(this->filepath, mergedSections, this->sections);
+	}
 public:
 	INIConfigReader()
 	{
 		const Derived& d = static_cast<Derived&>(*this);
-		auto mergedSections = mergeDuplicateSections(d.getConfigSections());
-		
-		if(!HasCLI)
-			assertNoVolatileFieldsInINIOnlyReader(mergedSections);
-			
-		this->filepath = d.getConfigFilePath();
-		initialize(mergedSections);
-		generateConfigFileIfNeeded(this->filepath, mergedSections);
-		loadConfigFromFile(this->filepath, mergedSections, this->sections);
+		init(d, d.getConfigFilePath());
 	}
 	
 	explicit INIConfigReader(const std::string& configFilePathOverride)
 	{
-		const Derived& d = static_cast<Derived&>(*this);
-		auto mergedSections = mergeDuplicateSections(d.getConfigSections());
-		
-		if(!HasCLI)
-			assertNoVolatileFieldsInINIOnlyReader(mergedSections);
-			
-		this->filepath = configFilePathOverride.empty() ? d.getConfigFilePath() : configFilePathOverride;
-		initialize(mergedSections);
-		generateConfigFileIfNeeded(this->filepath, mergedSections);
-		loadConfigFromFile(this->filepath, mergedSections, this->sections);
+		init(static_cast<Derived&>(*this), configFilePathOverride);
 	}
 	
+	// derived can override this
+	OrphanedConfigItemPolicy getOrphanedConfigItemPolicy() const
+    {
+        return OrphanedConfigItemPolicy::CommentOut;
+    }
 	
 	void saveConfig() const
 	{
@@ -87,6 +90,12 @@ public:
 		std::cout << "--export: wrote config to '" << exportPath << "'." << std::endl;
 	}
 private:
+
+void runSchemaEvolution(
+	const Derived& d,
+	const std::vector<ConfigSection>& mergedSections)
+{
+}
 
 void generateConfigFileIfNeeded(
 	const std::string& filePath,

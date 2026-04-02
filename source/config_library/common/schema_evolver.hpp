@@ -77,8 +77,10 @@ struct SchemaEvolutionResult
 	bool isClean() const {return !fileModified;}
 };
 
+using RawConfigMap = std::map<std::string, std::map<std::string, std::string>>;
+
 SchemaEvolutionResult evolveFileWithSchema(
-	const std::map<std::string, std::map<std::string, std::string>>& rawConfig,
+	const RawConfigMap& rawConfig,
 	const std::vector<ConfigSection>& currentSchema,
 	OrphanedConfigItemPolicy policy = OrphanedConfigItemPolicy::CommentOut
 );
