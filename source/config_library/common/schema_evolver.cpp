@@ -110,8 +110,6 @@ SchemaEvolutionResult evolveFileWithSchema(
 			}
 			else
 			{
-                result.fileModified = true;
-                
 				const std::string& fileRawValue = rawConfig.at(section.name).at(item.name);
 
                 std::string adoptedValue;
@@ -120,6 +118,7 @@ SchemaEvolutionResult evolveFileWithSchema(
 						
 				if (conflictType != ConfigItemConflictType::NoConflict)
                 {
+					result.fileModified = true;
 					const ConfigItemConflict configItemConflict {item, 
 						conflictType, fileRawValue, adoptedValue};
 					findOrInsertSectionConflict(result, section.name).conflictingConfigItems.push_back(configItemConflict);
