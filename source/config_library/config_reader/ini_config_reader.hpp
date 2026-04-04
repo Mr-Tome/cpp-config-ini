@@ -21,6 +21,18 @@ bool parseRawINI(
     const std::string& filePath,
     RawConfigMap& rawConfig);
 
+std::string formatINI(
+    const std::vector<ConfigSection>& configSections,
+    std::function<std::pair<std::string, std::string>(
+        const ConfigSection&, const ConfigItem&)> valueSource,
+    std::function<std::string(const std::string& sectionName)> postSectionLines,
+    const std::string& trailingContent);
+
+std::string evolveINI(
+    const std::vector<ConfigSection>& currentSchema,
+    const RawConfigMap& rawConfig,
+    const SchemaEvolutionResult& result,
+    OrphanedConfigItemPolicy policy);
 	
 //only thing this should be doing is calling saveConfig
 template<typename Derived, bool HasCLI = false>
@@ -37,7 +49,7 @@ class INIConfigReader : public ConfigReaderBase, public IPersistenceReader
 		this->filepath = configFilePath.empty() ? d.getConfigFilePath() : configFilePath;
 		initialize(mergedSections);
 		generateConfigFileIfNeeded(this->filepath, mergedSections);
-        runSchemaEvolution(d, mergedSections);
+        runSchemaEvolution(d.getOrphanedConfigItemPolicy(), mergedSections);
 		loadConfigFromFile(this->filepath, mergedSections, this->sections);
 	}
 public:
@@ -52,7 +64,6 @@ public:
 		init(static_cast<Derived&>(*this), configFilePathOverride);
 	}
 	
-	// derived can override this
 	OrphanedConfigItemPolicy getOrphanedConfigItemPolicy() const
     {
         return OrphanedConfigItemPolicy::CommentOut;
@@ -92,9 +103,34 @@ public:
 private:
 
 void runSchemaEvolution(
-	const Derived& d,
+	OrphanedConfigItemPolicy policy,
 	const std::vector<ConfigSection>& mergedSections)
 {
+	std::cout << "Running Schema Evolution" << std::endl;
+	RawConfigMap rawConfig;
+	parseRawINI(this->filepath, rawConfig);
+	
+	const auto result = evolveFileWithSchema(rawConfig, mergedSections, policy);
+	
+	if(!result.fileModified)
+	{
+		std::cout << "Schema Evolution found no differences!" << std::endl;
+		return;
+	}
+		
+	const std::string evolvedContent = evolveINI(mergedSections, rawConfig, result, policy);
+	
+	std::ofstream out(this->filepath);
+	if (!out.is_open())
+		throw std::runtime_error(
+			"Schema evolution: unable to write evolved config to: " + this->filepath);
+        
+	out << evolvedContent;
+
+	std::cout << "[SchemaEvolver] " << result.numberOfConflicts()
+			  << " change(s) applied to '" << this->filepath << "'.\n";
+			  
+	std::cout << "Finished running Schema Evolution!" << std::endl;
 }
 
 void generateConfigFileIfNeeded(
@@ -114,22 +150,21 @@ void generateConfigFileIfNeeded(
 		throw std::runtime_error("Invalid configuration detected at runtime");
 	}
 
-	std::string configContent = formatINI(mergedSections,
-			[](const ConfigSection&, const ConfigItem& item)
-            {
-                return item.defaultValue;
-            });
+	std::string configContent = formatINI(
+		mergedSections,
+		[](const ConfigSection&, const ConfigItem& item)
+			-> std::pair<std::string, std::string>
+		{
+			return {item.defaultValue, ""};
+		},
+		[](const std::string&) { return ""; },
+		"");
 
 	std::ofstream configFile(filePath);
-	if (configFile.is_open()) 
-	{
-		configFile << configContent;
-		configFile.close();
-	} 
-	else 
-	{
+	if (!configFile.is_open()) 
 		throw std::runtime_error("Unable to open file for writing: " + filePath);
-	}
+	
+	configFile << configContent;
 }
 
 void writeToFile(
@@ -138,12 +173,21 @@ void writeToFile(
 {
 	std::cout << "Saving the current configuration to: " << path << std::endl;
 
+	RawConfigMap storedValues;
+	for (const auto& section : configSections)
+		for (const auto& item : section.items)
+			if (item.persistence != Persistence::Volatile)
+				storedValues[section.name][item.name] = this->sections.at(section.name).getValues().at(item.name)->toString();
+
 	std::string content = formatINI(
 		configSections,
-		[this](const ConfigSection& section, const ConfigItem& item)
+		[&storedValues](const ConfigSection& section, const ConfigItem& item)
+			-> std::pair<std::string, std::string>
 		{
-			return this->sections.at(section.name).getValues().at(item.name)->toString();
-		});
+			return {storedValues.at(section.name).at(item.name), ""};
+		},
+		[](const std::string&) { return ""; },
+		"");
 
 	std::ofstream out(path);
 	if (!out.is_open())
@@ -153,40 +197,6 @@ void writeToFile(
 	std::cout << "Finished saving configuration to: " << path << std::endl;
 }
 
-std::string formatINI(
-	const std::vector<ConfigSection>& configSections,
-	std::function<std::string(const ConfigSection&, const ConfigItem&)> valueSource) const
-{
-	std::string config_content = "# Configuration file\n\n";
-
-	for (const auto& section : configSections) 
-	{
-		config_content += "[" + section.name + "]\n";
-		for (const auto& item : section.items) 
-		{
-			if (item.persistence == Persistence::Volatile)
-			{
-				config_content += "# " + item.name + " = <not stored>"
-					+ " # type: " + item.type
-					+ ", description: " + item.description
-					+ " [VOLATILE: supply via CLI every run]\n";
-				continue;
-			}
-			config_content += item.name + " = " + valueSource(section, item)
-				+ " # type: " + item.type
-				+ ", description: " + item.description;
-			if (item.validationRule)
-				config_content += " (validationRule: " + item.validationRule->toString() + ")";
-			
-			config_content += "\n";
-		}
-		config_content += "\n";
-	}
-
-	config_content += iniInstructions();
-
-	return config_content;
-}
 };
 
 } // namespace ConfigLib

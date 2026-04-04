@@ -43,7 +43,8 @@ ConfigItemConflictType classifyConflict(
 	auto& registry = TypeRegistry::instance();
 	
 	std::shared_ptr<ConfigValue> parsed;
-	//there's a priority here... TypeMismatch > ValidationFailure > CommentUpdated
+	//there's a priority here... 
+	//TypeMismatch > ValidationFailure > NoConflict
 	try
     {
         parsed = registry.parseValue(schemaItem.type, fileRawValue);
@@ -97,11 +98,15 @@ SchemaEvolutionResult evolveFileWithSchema(
         
         for (const auto& item : section.items)
         {
-			if (item.persistence == Persistence::Volatile)
-                continue; // dont think we need to do anything here, cuz its handled later
-                
-            const bool keyInFile = rawConfig.count(section.name) &&
+			 const bool keyInFile = rawConfig.count(section.name) &&
                 rawConfig.at(section.name).count(item.name);
+                
+			if (item.persistence == Persistence::Volatile)
+			{
+				if (keyInFile)
+					result.fileModified = true;
+				continue;
+			}           
             
             if(!keyInFile)
             {
@@ -110,6 +115,7 @@ SchemaEvolutionResult evolveFileWithSchema(
 			}
 			else
 			{
+				
 				const std::string& fileRawValue = rawConfig.at(section.name).at(item.name);
 
                 std::string adoptedValue;
@@ -117,13 +123,11 @@ SchemaEvolutionResult evolveFileWithSchema(
 
 						
 				if (conflictType != ConfigItemConflictType::NoConflict)
-                {
-					result.fileModified = true;
-					const ConfigItemConflict configItemConflict {item, 
+                	result.fileModified = true;
+				
+                const ConfigItemConflict configItemConflict {item, 
 						conflictType, fileRawValue, adoptedValue};
 					findOrInsertSectionConflict(result, section.name).conflictingConfigItems.push_back(configItemConflict);
-				}
-                
 
 			}
 		}

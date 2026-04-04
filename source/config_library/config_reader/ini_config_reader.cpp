@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <unordered_set>
 #include "ini_config_reader.hpp"
 #include "../common/config_lib_internal_utility.hpp"
 #include "../common/type_parser.hpp"
@@ -177,5 +178,155 @@ void loadConfigFromFile(
 				
 	std::cout << "Config loaded" << std::endl;
 }
-  	
+
+std::string formatINI(
+	const std::vector<ConfigSection>& configSections,
+	std::function<std::pair<std::string, std::string>(
+		const ConfigSection&, const ConfigItem&)> valueSource,
+	std::function<std::string(const std::string& sectionName)> postSectionLines,
+	const std::string& trailingContent)
+{
+	std::cout << "Calling formatINI(...)" << std::endl;
+	
+	std::string output = "# Configuration file\n\n";
+	for (const auto& section : configSections)
+	{
+		output += "[" + section.name + "]\n";
+
+		for (const auto& item : section.items)
+		{
+			if (item.persistence == Persistence::Volatile)
+			{
+				output += "# " + item.name + " = <not stored>"
+					+ " # type: "        + item.type
+					+ ", description: "  + item.description
+					+ " [VOLATILE: supply via CLI every run]\n";
+				continue;
+			}
+
+			const auto vSource = valueSource(section, item);
+			const auto& value = vSource.first;
+			const auto& evolutionNote = vSource.second;
+
+			output += item.name + " = " + value
+				+ " # type: "       + item.type
+				+ ", description: " + item.description;
+
+			if (item.validationRule)
+				output += " (validationRule: " + item.validationRule->toString() + ")";
+
+			output += evolutionNote;
+			output += "\n";
+		}
+
+		output += postSectionLines(section.name);
+		output += "\n";
+	}
+
+	output += trailingContent;
+	output += iniInstructions();
+	return output;
+}
+
+std::string evolveINI(
+    const std::vector<ConfigSection>& currentSchema,
+    const RawConfigMap& rawConfig,
+    const SchemaEvolutionResult& result,
+    OrphanedConfigItemPolicy policy)
+{
+	//TODO(IHT: 2026.04.02) consolidate lookups with schema_evolver.cpp
+	std::unordered_set<std::string> addedKeySet;
+	for (const auto& addedSection : result.addedSections)
+		for (const auto& item : addedSection.items)
+			addedKeySet.insert(addedSection.name + "." + item.name);
+    
+	std::unordered_map<std::string, const ConfigItemConflict*> conflictLookup;
+	for (const auto& sc : result.conflictingSections)
+		for (const auto& conflict : sc.conflictingConfigItems)
+			conflictLookup[sc.sectionName + "." + conflict.configItem.name] = &conflict;
+			
+	std::unordered_set<std::string> schemaKeySet;
+	std::unordered_set<std::string> schemaSectionSet;
+	for (const auto& section : currentSchema)
+	{
+		schemaSectionSet.insert(section.name);
+		for (const auto& item : section.items)
+			schemaKeySet.insert(section.name + "." + item.name);
+	}
+	
+	//returns the {value, evaluation comment} per config item.
+	auto newValueComment = [&](const ConfigSection& section, const ConfigItem& item)
+        -> std::pair<std::string, std::string>
+    {		
+		std::cout<< "Entering valueSource lambda[](){}" << std::endl;
+		const std::string qualifiedKey = section.name + "." + item.name;
+		if (addedKeySet.count(qualifiedKey))
+			return {item.defaultValue, " # (added by schema update)"};
+			
+		const auto conflictIt = conflictLookup.find(qualifiedKey);
+		if (conflictIt != conflictLookup.end())
+		{
+			const ConfigItemConflict& conflict = *conflictIt->second;
+
+			if (conflict.conflictType == ConfigItemConflictType::NoConflict)
+				return {conflict.newFileValue, ""};
+
+			const std::string ruleStr = item.validationRule
+				? item.validationRule->toString() : "unknown";
+
+			const std::string note = (conflict.conflictType == ConfigItemConflictType::TypeMismatch)
+				? " # (schema update: previous value '" + conflict.previousFileValue
+					+ "' is incompatible with new type '" + item.type + "', reset to default)"
+				: " # (schema update: previous value '" + conflict.previousFileValue
+					+ "' failed validation rule '" + ruleStr + "', reset to default)";
+
+			return {conflict.newFileValue, note};
+		}
+
+		//no conflict
+		throw std::logic_error(
+			"ini_config_reader.cpp, evolveINI: no entry in conflictLookup for " + qualifiedKey
+			+ "! This is a bug in evolveFileWithSchema!");
+	};
+	
+	auto deprecationKeyComments = [&](const std::string& sectionName) -> std::string
+	{
+		if (policy != OrphanedConfigItemPolicy::CommentOut)
+			return "";
+
+		const auto rawSectionIt = rawConfig.find(sectionName);
+		if (rawSectionIt == rawConfig.end())
+			return "";
+
+		std::string lines;
+		for (const auto& rawItem : rawSectionIt->second)
+		{
+			if (!schemaKeySet.count(sectionName + "." + rawItem.first))
+				lines += "# [deprecated] " + rawItem.first
+					   + " = " + rawItem.second + "\n";
+		}
+		return lines;
+	};
+	
+	
+	std::string orphanedSections;
+    for (const auto& rawSection : rawConfig)
+    {
+        if (schemaSectionSet.count(rawSection.first))
+            continue;
+
+        if (policy == OrphanedConfigItemPolicy::Remove)
+            continue;
+
+        // CommentOut (RuntimeError already threw in evolveFileWithSchema):
+        orphanedSections += "# [deprecated section: " + rawSection.first + "]\n";
+        for (const auto& rawItem : rawSection.second)
+            orphanedSections += "# [deprecated] " + rawItem.first
+                             + " = " + rawItem.second + "\n";
+        orphanedSections += "\n";
+    }
+
+    return formatINI(currentSchema, newValueComment, deprecationKeyComments, orphanedSections);
+}
+
 } // namespace ConfigLib
