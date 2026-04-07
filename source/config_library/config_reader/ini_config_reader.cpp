@@ -124,14 +124,7 @@ void loadConfigFromFile(
 		return;
 	}
 
-	//TODO (IHT2026.04.02): consolidate schemaLookup with schema_evolver.cpp
-	// sectionName, -> configItemName -> ConfigItem*
-	std::unordered_map<std::string,
-		std::unordered_map<std::string, const ConfigItem*>> schemaLookup;
-		
-	for (const auto& section : configSections)
-		for (const auto& item : section.items)
-			schemaLookup[section.name][item.name] = &item;
+	const auto schemaLookup = buildSchemaItemLookup(configSections);
 			
 	auto& registry = TypeRegistry::instance();
 	

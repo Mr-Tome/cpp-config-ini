@@ -185,12 +185,8 @@ private:
 		const std::vector<ConfigSection>& configSections,
 		const ParsedCLIArgs& parsed)
 	{
-		std::unordered_map<std::string,
-			std::unordered_map<std::string, const ConfigItem*>> schemaLookup;
-			
-		for (const auto& s : configSections)
-			for (const auto& i : s.items)
-				schemaLookup[s.name][i.name] = &i;
+		// sectionName -> itemName -> ConfigItem* 
+		const auto schemaLookup = buildSchemaItemLookup(configSections);
 		
 		auto& registry = TypeRegistry::instance();
 		for (const auto& kv : parsed.values)
@@ -322,10 +318,6 @@ private:
 				{
 					line << "*";
 				}
-				//std::cout << line.str();
-				
-				
-				//line << "\n";
 				
 				const std::string lineStr = line.str();
 				const int padTo = 42;
@@ -370,7 +362,8 @@ private:
 			std::cout << "[" << section.name << "]\n";
 			for (const auto& item : section.items)
 			{
-				if (item.persistence == Persistence::Volatile) continue;
+				if (item.persistence == Persistence::Volatile) 
+					continue;
 				
 				const std::string currentValue =
 					this->sections.at(section.name).getValues().at(item.name)->toString();
@@ -390,7 +383,8 @@ private:
 		{
 			for (const auto& item : section.items)
 			{
-				if (item.persistence == Persistence::Volatile) continue;
+				if (item.persistence == Persistence::Volatile) 
+					continue;
 
 				const std::string currentValue =
 					this->sections.at(section.name).getValues().at(item.name)->toString();
