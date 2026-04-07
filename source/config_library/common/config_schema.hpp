@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <unordered_set>
 #include "type_parser.hpp"
 #include "validation_rules.hpp"
 
@@ -99,4 +101,15 @@ struct ConfigSection
 bool validateConfig(const std::vector<ConfigSection>& sections);
 
 std::vector<ConfigSection> mergeDuplicateSections(const std::vector<ConfigSection>& sections);
+
+// sectionName -> set of item names. useful for key-existence checks
+using SchemaLookup = std::unordered_map<std::string, std::unordered_set<std::string>>;
+SchemaLookup buildSchemaLookup(const std::vector<ConfigSection>& sections);
+
+// sectionName -> itemName -> ConfigItem*. 
+// useful where the full item metadata is needed
+// Note: ConfigItem* are valid for the lifetime of 'sections'.
+using SchemaItemLookup = std::unordered_map<std::string, std::unordered_map<std::string, const ConfigItem*>>;
+SchemaItemLookup buildSchemaItemLookup(const std::vector<ConfigSection>& sections);
+
 } // namespace ConfigLib

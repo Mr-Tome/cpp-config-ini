@@ -80,6 +80,26 @@ std::vector<ConfigSection> mergeDuplicateSections(const std::vector<ConfigSectio
 	return merged;
 }
 
+
+SchemaLookup buildSchemaLookup(const std::vector<ConfigSection>& sections)
+{
+	SchemaLookup lookup;
+	for (const auto& section : sections)
+		for (const auto& item : section.items)
+			lookup[section.name].insert(item.name);
+	return lookup;
+}
+
+SchemaItemLookup buildSchemaItemLookup(const std::vector<ConfigSection>& sections)
+{
+	SchemaItemLookup lookup;
+	for (const auto& section : sections)
+		for (const auto& item : section.items)
+			lookup[section.name][item.name] = &item;
+	return lookup;
+}
+
+
 // compile-time check
 static_assert(validateConfigStructure(), 
 	"Invalid configuration structure detected at compile-time");

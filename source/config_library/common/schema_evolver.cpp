@@ -11,19 +11,6 @@ namespace ConfigLib
 
 namespace
 {
-//TODO (IHT): Consolidate this with the instance in cli_parser.cpp...
-using SchemaLookup = std::unordered_map<std::string, std::unordered_set<std::string>>;
-
-SchemaLookup buildSchemaLookup(const std::vector<ConfigSection>& sections)
-{
-	SchemaLookup lookup;
-	
-	for (const auto& section : sections)
-		for (const auto& item : section.items)
-			lookup[section.name].insert(item.name);
-			
-	return lookup;
-}
 
 std::unordered_set<std::string> buildSchemaKeySet(
     const std::vector<ConfigSection>& schema)
