@@ -127,8 +127,7 @@ void runSchemaEvolution(
         
 	out << evolvedContent;
 
-	std::cout << "[SchemaEvolver] " << result.numberOfConflicts()
-			  << " change(s) applied to '" << this->filepath << "'.\n";
+	logEvolutionResult(result, this->filepath);
 			  
 	std::cout << "Finished running Schema Evolution!" << std::endl;
 }

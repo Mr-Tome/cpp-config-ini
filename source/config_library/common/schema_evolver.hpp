@@ -2,6 +2,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <ostream>
 #include "config_schema.hpp"
 
 namespace ConfigLib 
@@ -84,5 +85,13 @@ SchemaEvolutionResult evolveFileWithSchema(
 	const std::vector<ConfigSection>& currentSchema,
 	OrphanedConfigItemPolicy policy = OrphanedConfigItemPolicy::CommentOut
 );
+
+// prints out the summary of what evolveFileWithSchema found
+// 'filePath' is included in the header line, so end users know what is going on
+// 'out' defaults to std::cout but using std::ostream for redirection testing
+void logEvolutionResult(
+	const SchemaEvolutionResult& result,
+	const std::string& filePath,
+	std::ostream& out = std::cout);
 	
 } // namespace ConfigLib

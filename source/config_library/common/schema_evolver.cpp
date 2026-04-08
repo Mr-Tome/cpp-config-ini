@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
 #include "schema_evolver.hpp"
@@ -150,6 +151,56 @@ SchemaEvolutionResult evolveFileWithSchema(
     }
 
     return result;
+}
+
+void logEvolutionResult(
+	const SchemaEvolutionResult& result,
+	const std::string& filePath,
+	std::ostream& out)
+{
+	const std::size_t n = result.numberOfConflicts();
+	out << "[SchemaEvolver] " << n << " change(s) applied to '" << filePath << "'.\n";
+
+	for (const auto& addedSection : result.addedSections)
+	{
+		for (const auto& item : addedSection.items)
+		{
+			out << "[SchemaEvolver]   Added    "
+			    << addedSection.name << "." << item.name
+			    << "  (type: " << item.type
+			    << ", default: " << item.defaultValue << ")\n";
+		}
+	}
+
+	for (const auto& sc : result.conflictingSections)
+	{
+		for (const auto& conflict : sc.conflictingConfigItems)
+		{
+			if (conflict.conflictType == ConfigItemConflictType::NoConflict)
+				continue;
+
+			const std::string reason =
+				(conflict.conflictType == ConfigItemConflictType::TypeMismatch)
+				? "TypeMismatch: incompatible with type '" + conflict.configItem.type + "'"
+				: "ValidationFailure: " + (conflict.configItem.validationRule
+					? conflict.configItem.validationRule->toString()
+					: "unknown rule");
+
+			out << "[SchemaEvolver]   Reset    "
+			    << sc.sectionName << "." << conflict.configItem.name
+			    << "  old='" << conflict.previousFileValue
+			    << "' -> default='" << conflict.newFileValue
+			    << "'  (" << reason << ")\n";
+		}
+
+		for (const auto& orphan : sc.removedEntries)
+		{
+			out << "[SchemaEvolver]   Orphan   "
+			    << orphan.sectionName << "." << orphan.configItemName
+			    << " = " << orphan.rawValue
+			    << "  (not in schema, see [deprecated] comment in file)\n";
+		}
+	}
 }
 
 } // namespace ConfigLib
