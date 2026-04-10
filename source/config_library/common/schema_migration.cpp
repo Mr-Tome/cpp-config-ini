@@ -92,7 +92,7 @@ RawConfigMap applyMigrations(
 
 	for(const auto* m: applicable)
 	{
-		if(m->kind == SchemaMigration::Kind::Rename)
+		if(m->kind == SchemaMigration::Kind::RenameKey)
 		{
 			//old section doesnt exist in current config ini
 			if(!rawConfig.count(m->oldSection))

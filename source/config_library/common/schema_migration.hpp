@@ -12,7 +12,8 @@ struct SchemaMigration
 
 	enum class Kind
 	{
-		Rename, // should transfer the users value from an old key name to a new one
+		RenameKey, // should transfer the users value from an old key name to a new one
+		RenameSection,
 		Transform //applies function to a key's raw string value
 		//Add, // i think these are handled via evolveFileWithSchema 
 		//Remove // i think these are handled via evolveFileWithSchema 
@@ -27,7 +28,7 @@ struct SchemaMigration
 	std::string newSection;
 	std::string newKey;
 	
-	//when it's a Kind::Rename, should be nullptr
+	//when it's a Kind::RenameKey & Kind::RenameSection, should be nullptr
 	//when it's Kind::Transform
 	std::function<std::string(const std::string&)> transform;
 };	
@@ -39,20 +40,35 @@ const static uint32_t invalidSchemaVersion = 0;
 
 constexpr const char* schemaVersionPrefix = "# __schema_version__ = ";
 
-inline SchemaMigration rename(
+inline SchemaMigration renameKey(
 	uint32_t fromVersion,
 	uint32_t toVersion,
 	const std::string& oldSection, const std::string& oldKey,
 	const std::string& newSection, const std::string& newKey)
 {
 	SchemaMigration m;
-	m.kind = SchemaMigration::Kind::Rename;
+	m.kind = SchemaMigration::Kind::RenameKey;
 	m.fromVersion = fromVersion;
 	m.toVersion = toVersion;
 	m.oldSection = oldSection;
 	m.oldKey = oldKey;
 	m.newSection = newSection;
 	m.newKey = newKey;
+	return m;
+}
+
+inline SchemaMigration renameSection(
+	uint32_t fromVersion,
+	uint32_t toVersion,
+	const std::string& oldSection,
+	const std::string& newSection)
+{
+	SchemaMigration m;
+	m.kind = SchemaMigration::Kind::RenameSection;
+	m.fromVersion = fromVersion;
+	m.toVersion = toVersion;
+	m.oldSection = oldSection;
+	m.newSection = newSection;
 	return m;
 }
 
