@@ -2,7 +2,7 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <ostream>
+#include <iostream>
 #include "config_schema.hpp"
 
 namespace ConfigLib 
