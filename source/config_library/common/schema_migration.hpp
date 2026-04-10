@@ -1,6 +1,8 @@
 #pragma once
 #include <functional>
 #include <string>
+#include <vector>
+#include "schema_evolver.hpp"//just for RawConfigMap
 
 namespace ConfigLib
 {
@@ -36,8 +38,8 @@ namespace Migration
 inline SchemaMigration rename(
 	int fromVersion,
 	int toVersion,
-	const std::string& oldSection, const std::string& oldKey
-	const std::string& newSection, const std::String& newKey)
+	const std::string& oldSection, const std::string& oldKey,
+	const std::string& newSection, const std::string& newKey)
 {
 	SchemaMigration m;
 	m.kind = SchemaMigration::Kind::Rename;
@@ -65,6 +67,14 @@ inline SchemaMigration transform(
 	m.transform = std::move(fn);
 	return m;
 }
+
+int parseSchemaVersion(const std::string& filePath);
+
+RawConfigMap applyMigrations(
+	RawConfigMap rawConfig,
+	const std::vector<SchemaMigration>& migrations,
+	int fileVersion,
+	int schemaVersion);
 
 } // namespace Migration
 
