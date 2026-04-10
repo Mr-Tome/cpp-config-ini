@@ -6,7 +6,7 @@
 
 namespace ConfigLib
 {
-	
+
 struct SchemaMigration
 {
 
@@ -19,8 +19,8 @@ struct SchemaMigration
 	};
 	
 	Kind kind;
-	int fromVersion;
-	int toVersion;
+	uint32_t fromVersion;
+	uint32_t toVersion;
 	
 	std::string oldSection;
 	std::string oldKey;
@@ -34,10 +34,14 @@ struct SchemaMigration
 
 namespace Migration
 {
-	
+
+const static uint32_t invalidSchemaVersion = 0;
+
+constexpr const char* schemaVersionPrefix = "# __schema_version__ = ";
+
 inline SchemaMigration rename(
-	int fromVersion,
-	int toVersion,
+	uint32_t fromVersion,
+	uint32_t toVersion,
 	const std::string& oldSection, const std::string& oldKey,
 	const std::string& newSection, const std::string& newKey)
 {
@@ -53,11 +57,16 @@ inline SchemaMigration rename(
 }
 
 inline SchemaMigration transform(
-	int fromVersion,
-	int toVersion,
+	uint32_t fromVersion,
+	uint32_t toVersion,
 	const std::string& oldSection, const std::string& oldKey,
 	std::function<std::string(const std::string&)> fn)
 {
+	if (!fn)
+		throw std::invalid_argument(
+			"Migration::transform for " + oldSection + "." + oldKey
+			+ " requires a non-null transform function.");
+			
 	SchemaMigration m;
 	m.kind = SchemaMigration::Kind::Transform;
 	m.fromVersion = fromVersion;
@@ -68,13 +77,13 @@ inline SchemaMigration transform(
 	return m;
 }
 
-int parseSchemaVersion(const std::string& filePath);
+uint32_t parseSchemaVersion(const std::string& filePath);
 
 RawConfigMap applyMigrations(
 	RawConfigMap rawConfig,
 	const std::vector<SchemaMigration>& migrations,
-	int fileVersion,
-	int schemaVersion);
+	uint32_t fileVersion,
+	uint32_t schemaVersion);
 
 } // namespace Migration
 

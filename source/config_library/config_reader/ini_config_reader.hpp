@@ -6,6 +6,7 @@
 #include "config_reader_base.hpp"
 #include "PersistenceReaders/IPersistenceReader.hpp"
 #include "../common/schema_evolver.hpp"
+#include "../common/schema_migration.hpp"
 
 namespace ConfigLib 
 {
@@ -26,13 +27,15 @@ std::string formatINI(
     std::function<std::pair<std::string, std::string>(
         const ConfigSection&, const ConfigItem&)> valueSource,
     std::function<std::string(const std::string& sectionName)> postSectionLines,
-    const std::string& trailingContent);
+    const std::string& trailingContent,
+	const std::string& header="");
 
 std::string evolveINI(
     const std::vector<ConfigSection>& currentSchema,
     const RawConfigMap& rawConfig,
     const SchemaEvolutionResult& result,
-    OrphanedConfigItemPolicy policy);
+    OrphanedConfigItemPolicy policy,
+    const std::string& header = "");
 	
 //only thing this should be doing is calling saveConfig
 template<typename Derived, bool HasCLI = false>
@@ -68,6 +71,12 @@ public:
     {
         return OrphanedConfigItemPolicy::CommentOut;
     }
+	
+	uint32_t getSchemaVersion() const
+	{
+		return Migration::invalidSchemaVersion;
+	}
+	std::vector<SchemaMigration> getMigrations() const { return {}; }
 	
 	void saveConfig() const
 	{
@@ -107,18 +116,36 @@ void runSchemaEvolution(
 	const std::vector<ConfigSection>& mergedSections)
 {
 	std::cout << "Running Schema Evolution" << std::endl;
+	const Derived& d = static_cast<const Derived&>(*this);
+	const uint32_t schemaVersion = d.getSchemaVersion();
+	
 	RawConfigMap rawConfig;
 	parseRawINI(this->filepath, rawConfig);
 	
+	std::string versionHeader;
+	bool versionHeaderChanged = false;
+	
+	if(this->getSchemaVersion() > Migration::invalidSchemaVersion)
+	{
+		const uint32_t fileVersion = Migration::parseSchemaVersion(this->filepath);
+		versionHeaderChanged = (fileVersion != schemaVersion);
+		rawConfig = Migration::applyMigrations(
+			std::move(rawConfig), d.getMigrations(), fileVersion, schemaVersion);
+		
+		versionHeader = std::string(Migration::schemaVersionPrefix) 
+					  + std::to_string(schemaVersion);
+	}
+	
 	const auto result = evolveFileWithSchema(rawConfig, mergedSections, policy);
 	
-	if(!result.fileModified)
+	if(!result.fileModified && !versionHeaderChanged)
 	{
 		std::cout << "Schema Evolution found no differences!" << std::endl;
 		return;
 	}
 		
-	const std::string evolvedContent = evolveINI(mergedSections, rawConfig, result, policy);
+	const std::string evolvedContent = evolveINI(mergedSections, 
+			rawConfig, result, policy, versionHeader);
 	
 	std::ofstream out(this->filepath);
 	if (!out.is_open())

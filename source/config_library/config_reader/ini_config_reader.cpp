@@ -177,11 +177,17 @@ std::string formatINI(
 	std::function<std::pair<std::string, std::string>(
 		const ConfigSection&, const ConfigItem&)> valueSource,
 	std::function<std::string(const std::string& sectionName)> postSectionLines,
-	const std::string& trailingContent)
+	const std::string& trailingContent,
+	const std::string& header)
 {
 	std::cout << "Calling formatINI(...)" << std::endl;
 	
-	std::string output = "# Configuration file\n\n";
+	//version 
+	std::string output;
+	if (!header.empty())
+		output = header + "\n\n";
+	
+	output += "# Configuration file\n\n";
 	for (const auto& section : configSections)
 	{
 		output += "[" + section.name + "]\n";
@@ -225,7 +231,8 @@ std::string evolveINI(
     const std::vector<ConfigSection>& currentSchema,
     const RawConfigMap& rawConfig,
     const SchemaEvolutionResult& result,
-    OrphanedConfigItemPolicy policy)
+    OrphanedConfigItemPolicy policy,
+    const std::string& header)
 {
 	//TODO(IHT: 2026.04.02) consolidate lookups with schema_evolver.cpp
 	std::unordered_set<std::string> addedKeySet;
@@ -319,7 +326,7 @@ std::string evolveINI(
         orphanedSections += "\n";
     }
 
-    return formatINI(currentSchema, newValueComment, deprecationKeyComments, orphanedSections);
+    return formatINI(currentSchema, newValueComment, deprecationKeyComments, orphanedSections, header);
 }
 
 } // namespace ConfigLib

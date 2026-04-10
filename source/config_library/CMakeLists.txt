@@ -11,6 +11,7 @@ add_library(source_directory_lib STATIC
 	common/schema_evolver.hpp
 	common/schema_evolver.cpp
 	common/schema_migration.hpp
+	common/schema_migration.cpp
 
 	config_reader/ini_config_reader.cpp
 	config_reader/ini_config_reader.hpp
