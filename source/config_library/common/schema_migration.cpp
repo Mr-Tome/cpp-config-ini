@@ -10,15 +10,11 @@ namespace ConfigLib
 namespace Migration
 {
 		
-// scan 'filePath' for a leading comment. If the line is 
-// of the form: # __schema_version__ = N,
-// then:
-// Returns N if found, 0 otherwise. Stops scanning at the first non-comment line.	
 uint32_t parseSchemaVersion(const std::string& filePath)
 {	
 	std::ifstream file(filePath);
 	if(!file.is_open())
-		return 0; // should throw?
+		return invalidSchemaVersion; // normal on first run ever
 		
 	const std::string schemaString = Migration::schemaVersionPrefix;
 	std::string line;
@@ -64,19 +60,98 @@ std::vector<const SchemaMigration*> collectMigrationsAcrossVersionGap(
 	uint32_t fileVersion,
 	uint32_t schemaVersion)
 {
-	std::vector<const SchemaMigration*> applicable;
+	std::vector<const SchemaMigration*> result;
 	
 	for (const auto& m : migrations)
 		if(m.fromVersion>= fileVersion && m.toVersion <= schemaVersion)
-			applicable.push_back(&m);
+			result.push_back(&m);
 	
-	std::sort(applicable.begin(), applicable.end(), 
+	std::sort(result.begin(), result.end(), 
 			[](const SchemaMigration* a, const SchemaMigration* b)
 			{
 				return a->fromVersion < b->fromVersion;
 			});
 			
-	return applicable;
+	return result;
+}
+
+std::string maybeTransform(
+	const std::string& value,
+	const std::function<std::string(const std::string&)>& fn)
+{
+	return fn ? fn(value) : value;
+}
+
+void applyRenames(
+	RawConfigMap& rawConfig,
+	const std::vector<const SchemaMigration*>& applicable)
+{
+	for (const auto* m : applicable)
+	{
+		if (m->kind != SchemaMigration::Kind::Rename) 
+			continue;
+		if (!rawConfig.count(m->oldSection)) 
+			continue;
+		if (!rawConfig.at(m->oldSection).count(m->oldKey)) 
+			continue;
+
+		const std::string value = maybeTransform(rawConfig.at(m->oldSection).at(m->oldKey), m->transform);
+
+		// if we erase first and it's a rename-to-self (transformInPlace):
+		// will avoid a redundant copy
+		rawConfig[m->oldSection].erase(m->oldKey);
+		if (rawConfig.at(m->oldSection).empty())
+			rawConfig.erase(m->oldSection);
+
+		rawConfig[m->newSection][m->newKey] = value;
+	}
+}
+
+void applyRenameSections(
+	RawConfigMap& rawConfig,
+	const std::vector<const SchemaMigration*>& applicable)
+{
+	for (const auto* m : applicable)
+	{
+		if (m->kind != SchemaMigration::Kind::RenameSection) 
+			continue;
+		if (!rawConfig.count(m->oldSection)) 
+			continue;
+
+		// a) RenameKey children...move from oldSection to newSection with optional transform
+		for (const auto& child : m->children)
+		{
+			if (child.kind != SectionScopedMigration::Kind::RenameKey) 
+				continue;
+			if (!rawConfig.at(m->oldSection).count(child.oldKey)) 
+				continue;
+
+			rawConfig[m->newSection][child.newKey] = maybeTransform(rawConfig.at(m->oldSection).at(child.oldKey), child.transform);
+			rawConfig[m->oldSection].erase(child.oldKey);
+		}
+
+		// b) move all remaining keys from oldSection to newSection.
+		for (const auto& kv : rawConfig.at(m->oldSection))
+			rawConfig[m->newSection][kv.first] = kv.second;
+		rawConfig.erase(m->oldSection);
+
+		// c) TransformKey children...all keys are now in newSection at their final names.
+		for (const auto& child : m->children)
+		{
+			if (child.kind != SectionScopedMigration::Kind::TransformKey) 
+				continue;
+			if (!rawConfig.at(m->newSection).count(child.oldKey)) 
+				continue;
+
+			if (!child.transform)
+				throw std::runtime_error(
+					"Migration::transformKey for key '" + child.oldKey
+					+ "' in renameSection '" + m->oldSection + "' -> '"
+					+ m->newSection + "' has a null transform function.");
+
+			rawConfig[m->newSection][child.oldKey] = child.transform(rawConfig.at(m->newSection).at(child.oldKey));
+		}
+	}
 }
 
 } // namespace anonymous
@@ -90,51 +165,8 @@ RawConfigMap applyMigrations(
 	auto applicable = collectMigrationsAcrossVersionGap(migrations, 
 											fileVersion, schemaVersion);
 
-	for(const auto* m: applicable)
-	{
-		if(m->kind == SchemaMigration::Kind::RenameKey)
-		{
-			//old section doesnt exist in current config ini
-			if(!rawConfig.count(m->oldSection))
-				continue;
-			
-			// old section still exists and so does old key
-			if(rawConfig.at(m->oldSection).count(m->oldKey))
-			{
-				//take the old value 
-				rawConfig[m->newSection][m->newKey] = rawConfig.at(m->oldSection).at(m->oldKey);
-			
-				//erase old value.
-				rawConfig[m->oldSection].erase(m->oldKey);
-			}
-			
-			//if all the old keys are gone, we can erase the old section.
-			if (rawConfig.at(m->oldSection).empty())
-				rawConfig.erase(m->oldSection);
-			
-		}
-		if(m->kind ==  SchemaMigration::Kind::Transform)
-		{
-			if(!rawConfig.count(m->oldSection))//old section doesnt exist in current config ini
-				continue;
-			
-			// old section still exists, but old key does not
-			if(!rawConfig.at(m->oldSection).count(m->oldKey)) 
-				continue;
-				
-			if (!m->transform)
-				throw std::runtime_error(
-					"SchemaMigration::Kind::Transform for "
-					+ m->oldSection + "." + m->oldKey
-					+ " has a null transform function.");
-			
-			rawConfig[m->oldSection][m->oldKey] = m->transform(rawConfig.at(m->oldSection).at(m->oldKey));
-				
-		}
-		else
-			throw std::logic_error("You forgot to update "
-				"sceham_migrations.cpp::applyMigrations switch cases");
-	}
+	applyRenames(rawConfig, applicable);
+	applyRenameSections(rawConfig, applicable);
 	
 	return rawConfig;
 	
