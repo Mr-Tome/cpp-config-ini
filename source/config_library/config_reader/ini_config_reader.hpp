@@ -125,7 +125,7 @@ void runSchemaEvolution(
 	std::string versionHeader;
 	bool versionHeaderChanged = false;
 	
-	if(this->getSchemaVersion() > Migration::invalidSchemaVersion)
+	if(schemaVersion > Migration::invalidSchemaVersion)
 	{
 		const uint32_t fileVersion = Migration::parseSchemaVersion(this->filepath);
 		versionHeaderChanged = (fileVersion != schemaVersion);
