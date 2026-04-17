@@ -109,6 +109,48 @@ public:
 		writeToFile(configSections, exportPath);
 		std::cout << "--export: wrote config to '" << exportPath << "'." << std::endl;
 	}
+	
+	void persistSchemaDryRun(const std::vector<ConfigSection>& mergedSections) const override
+	{
+		const Derived& d = static_cast<const Derived&>(*this);
+
+		RawConfigMap rawConfig;
+		parseRawINI(this->filepath, rawConfig);
+
+		const uint32_t schemaVersion = d.getSchemaVersion();
+		if (schemaVersion > Migration::invalidSchemaVersion)
+		{
+			const uint32_t fileVersion = Migration::parseSchemaVersion(this->filepath);
+			std::cout << "[--schema-dry-run] Current Schema version: " << schemaVersion << "\n"
+			          << "File's Schema version: " << fileVersion << "\n";
+			rawConfig = Migration::applyMigrations(
+				std::move(rawConfig), d.getMigrations(), fileVersion, schemaVersion);
+		}
+
+		const auto result = evolveFileWithSchema(
+			rawConfig, mergedSections, d.getOrphanedConfigItemPolicy());
+
+		std::cout << "[--schema-dry-run] No file will be written.\n";
+		logEvolutionResult(result, this->filepath);
+		std::exit(0);
+	}
+	
+	void persistSchemaVersion() const override
+	{
+		const Derived& d = static_cast<const Derived&>(*this);
+		const uint32_t schemaVersion = d.getSchemaVersion();
+		const uint32_t fileVersion   = Migration::parseSchemaVersion(this->filepath);
+
+		std::cout << "Current Schema version: " << schemaVersion << "\n";
+		std::cout << "File's Schema version: ";
+		if (fileVersion == Migration::invalidSchemaVersion)
+			std::cout << "(none file predates versioning)\n";
+		else
+			std::cout << fileVersion << "\n";
+
+		std::exit(0);
+	}
+	
 private:
 
 void runSchemaEvolution(

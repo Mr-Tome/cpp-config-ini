@@ -13,6 +13,10 @@ public:
 	virtual void persistExport(
 		const std::string& exportPath,
 		const std::vector<ConfigSection>& configSections) const = 0;
+		
+	virtual void persistSchemaDryRun(
+		const std::vector<ConfigSection>& configSections) const = 0;
+	virtual void persistSchemaVersion() const = 0;
 
 };
 	

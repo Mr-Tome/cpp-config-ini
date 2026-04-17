@@ -16,6 +16,8 @@ struct LibProvidedCLIFlags
 	bool _delete = false; // deliete the INI file so it regenerates from the default.
 	bool diff = false; // show the values that differ from the schema defaults
 	
+	bool schema_dry_run = false; // shows what schema evolution would do without actually writing to the file.
+	bool schema_version = false; // prints the schema version in developers code and in the users file, then exits.
 	
 	std::string flat; // enables a flat key lookup
 	std::string config_path; //use an alterante INI file path.

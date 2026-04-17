@@ -28,6 +28,29 @@ public:
 template<typename Derived, typename Base>
 class CLIFeatureLayer : public Base
 {
+	void init()
+	{
+		const Derived& d = static_cast<Derived&>(*this);
+		const auto configSections = mergeDuplicateSections(d.getConfigSections());
+		
+		const CLIKeyMap keyMap = buildCLIKeyMap(configSections);
+		
+		bool flatEnabled = isFlatEnabled(d);
+		
+		const ParsedCLIArgs parsed = parseCLIArgs(this->rawCLIArgs,
+														configSections,
+														keyMap,
+														flatEnabled);
+		
+														
+		helpIfNeeded(configSections, parsed, keyMap, flatEnabled);
+		applyCLIOverrides(configSections,parsed);
+		
+		//(IHT 2026.03.18) This needs to go last in this constructor atm,
+		// because it's acting on a fully resolved stated 
+		// of this class and base classes
+		parsePostConstructionSystemFlags(configSections, parsed);
+	}
 public:
 	CLIFeatureLayer() : Base()
 	{
@@ -54,8 +77,7 @@ private:
 		const std::vector<ConfigSection>& configSections,
 		std::true_type) const
 	{
-		static_cast<const IPersistenceReader*>(this)
-			->persistSave(configSections);
+		static_cast<const IPersistenceReader*>(this)->persistSave(configSections);
 	}
 	void handleSave(
 		const std::vector<ConfigSection>&,
@@ -78,8 +100,7 @@ private:
 		const std::vector<ConfigSection>& configSections,
 		std::true_type) const
 	{
-		static_cast<const IPersistenceReader*>(this)
-			->persistExport(exportPath, configSections);
+		static_cast<const IPersistenceReader*>(this)->persistExport(exportPath, configSections);
 	}
 	void handleExport(
 		const std::string&,
@@ -89,6 +110,31 @@ private:
 		std::cerr << "Warning: --export has no effect because no persistence layer configured.\n";
 	}
 	
+	void handleSchemaDryRun(
+		const std::vector<ConfigSection>& configSections,
+		std::true_type) const
+	{
+		static_cast<const IPersistenceReader*>(this)->persistSchemaDryRun(configSections);
+		std::exit(0);
+	}
+	
+	void handleSchemaDryRun(
+		const std::vector<ConfigSection>&,
+		std::false_type) const
+	{
+		std::cerr << "Warning: --schema-dry-run has no effect because no persistence layer configured.\n";
+	}
+	
+	void handleSchemaVersion(std::true_type) const
+	{
+		static_cast<const IPersistenceReader*>(this)->persistSchemaVersion();
+		std::exit(0);
+	}
+	
+	void handleSchemaVersion(std::false_type) const
+	{
+		std::cerr << "Warning: --schema-version has no effect because no persistence layer configured.\n";
+	}
 	
 	void printPersistenceFlags(std::true_type, bool hasAVolatile) const
 	{
@@ -98,6 +144,8 @@ private:
 			<< "  --delete                          Delete config file\n"
 			<< "  --export=<path>                   Write the config to a new file\n"
 			<< "  --config=<path>                   Use an alternative config file\n";
+			<< "  --schema-dry-run                  Shows what schema evolution would do without writing the file\n";
+			<< "  --schema-version                  Print the current schema version and the file's schema version\n";
 	}
 	void printPersistenceFlags(std::false_type, bool) const {}
 	
@@ -121,37 +169,18 @@ private:
 			}
 		}
 		return flatEnabled;
-	}
-	
-	void init()
-	{
-		const Derived& d = static_cast<Derived&>(*this);
-		const auto configSections = mergeDuplicateSections(d.getConfigSections());
-		
-		const CLIKeyMap keyMap = buildCLIKeyMap(configSections);
-		
-		bool flatEnabled = isFlatEnabled(d);
-		
-		const ParsedCLIArgs parsed = parseCLIArgs(this->rawCLIArgs,
-														configSections,
-														keyMap,
-														flatEnabled);
-		
-														
-		helpIfNeeded(configSections, parsed, keyMap, flatEnabled);
-		applyCLIOverrides(configSections,parsed);
-		
-		//(IHT 2026.03.18) This needs to go last in this constructor atm,
-		// because it's acting on a fully resolved stated 
-		// of this class and base classes
-		parsePostConstructionSystemFlags(configSections, parsed);
-	}
-	
+	}	
 	
 	void parsePostConstructionSystemFlags(
 		const std::vector<ConfigSection>& configSections,
 		const ParsedCLIArgs& parsed)
 	{
+		
+		if (parsed.flags.schema_dry_run)
+			handleSchemaDryRun(configSections, HasPersistence{});
+		if (parsed.flags.schema_version)
+			handleSchemaVersion(HasPersistence{});
+		
 		if (parsed.flags.print)
 			printConfig(configSections);
 		

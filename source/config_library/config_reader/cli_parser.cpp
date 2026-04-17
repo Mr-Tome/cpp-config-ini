@@ -6,9 +6,7 @@
 
 namespace ConfigLib
 {
-
-
-
+	
 namespace // anonymous
 {
 
@@ -21,6 +19,9 @@ bool tryParseLibProvidedCLIFlags(
 	if(arg == "--save") {flags.save = true; return true;}
 	if(arg == "--delete") {flags._delete = true; return true;}
 	if(arg == "--diff") {flags.diff = true; return true;}
+	
+	if(arg == "--schema-dry-run") {flags.schema_dry_run = true; return true;}
+	if(arg == "--schema-version") {flags.schema_version = true; return true;}
 	
 	const std::string flatPrefix = "--flat=";
 	const std::string configPrefix = "--config=";
@@ -182,7 +183,8 @@ const std::unordered_set<std::string>& reservedFlatKeys()
 {
 	static const std::unordered_set<std::string> keys = {
 		"help", "print", "save", "delete", "diff",
-		"flat", "config", "export"
+		"flat", "config", "export",
+		"schema-dry-run", "schema-version"
 	};
 	return keys;
 }
