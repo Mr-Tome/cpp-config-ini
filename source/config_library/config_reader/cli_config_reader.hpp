@@ -143,8 +143,8 @@ private:
 				<< (hasAVolatile ? "[REQUIRED fields skipped]" : "" ) <<"\n"
 			<< "  --delete                          Delete config file\n"
 			<< "  --export=<path>                   Write the config to a new file\n"
-			<< "  --config=<path>                   Use an alternative config file\n";
-			<< "  --schema-dry-run                  Shows what schema evolution would do without writing the file\n";
+			<< "  --config=<path>                   Use an alternative config file\n"
+			<< "  --schema-dry-run                  Shows what schema evolution would do without writing the file\n"
 			<< "  --schema-version                  Print the current schema version and the file's schema version\n";
 	}
 	void printPersistenceFlags(std::false_type, bool) const {}
