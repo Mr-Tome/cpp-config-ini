@@ -74,6 +74,7 @@ public:
 	
 	uint32_t getSchemaVersion() const
 	{
+		std::cout << "ini_config_reader.hpp: getSchemaVersion() " << std::endl;
 		return Migration::invalidSchemaVersion;
 	}
 	std::vector<SchemaMigration> getMigrations() const { return {}; }
@@ -160,6 +161,7 @@ void runSchemaEvolution(
 	std::cout << "Running Schema Evolution" << std::endl;
 	const Derived& d = static_cast<const Derived&>(*this);
 	const uint32_t schemaVersion = d.getSchemaVersion();
+	std::cout << "Current Schema Version: " << schemaVersion << std::endl;
 	
 	RawConfigMap rawConfig;
 	parseRawINI(this->filepath, rawConfig);

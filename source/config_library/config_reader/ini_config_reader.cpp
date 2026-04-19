@@ -224,6 +224,8 @@ std::string formatINI(
 
 	output += trailingContent;
 	output += iniInstructions();
+	
+	std::cout << "Completed formatINI(...)" << std::endl;
 	return output;
 }
 
@@ -234,6 +236,7 @@ std::string evolveINI(
     OrphanedConfigItemPolicy policy,
     const std::string& header)
 {
+	std::cout << "ini_config_reader.cpp evolveINI() start" << std::endl;
 	//TODO(IHT: 2026.04.02) consolidate lookups with schema_evolver.cpp
 	std::unordered_set<std::string> addedKeySet;
 	for (const auto& addedSection : result.addedSections)
@@ -326,7 +329,11 @@ std::string evolveINI(
         orphanedSections += "\n";
     }
 
-    return formatINI(currentSchema, newValueComment, deprecationKeyComments, orphanedSections, header);
+	
+    std::cout << "ini_config_reader.cpp evolveINI()::header: \'" << header<< "\'" << std::endl;
+    
+    std::cout << "ini_config_reader.cpp evolveINI() complete" << std::endl;
+    return formatINI(currentSchema, newValueComment, deprecationKeyComments, orphanedSections, header);    
 }
 
 } // namespace ConfigLib
