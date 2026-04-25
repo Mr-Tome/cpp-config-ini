@@ -180,7 +180,7 @@ std::string formatINI(
 	const std::string& trailingContent,
 	const std::string& header)
 {
-	std::cout << "Calling formatINI(...)" << std::endl;
+	//std::cout << "Calling formatINI(...)" << std::endl;
 	
 	//version 
 	std::string output;
@@ -225,7 +225,7 @@ std::string formatINI(
 	output += trailingContent;
 	output += iniInstructions();
 	
-	std::cout << "Completed formatINI(...)" << std::endl;
+	//std::cout << "Completed formatINI(...)" << std::endl;
 	return output;
 }
 
@@ -236,7 +236,6 @@ std::string evolveINI(
     OrphanedConfigItemPolicy policy,
     const std::string& header)
 {
-	std::cout << "ini_config_reader.cpp evolveINI() start" << std::endl;
 	//TODO(IHT: 2026.04.02) consolidate lookups with schema_evolver.cpp
 	std::unordered_set<std::string> addedKeySet;
 	for (const auto& addedSection : result.addedSections)
@@ -261,7 +260,6 @@ std::string evolveINI(
 	auto newValueComment = [&](const ConfigSection& section, const ConfigItem& item)
         -> std::pair<std::string, std::string>
     {		
-		std::cout<< "Entering valueSource lambda[](){}" << std::endl;
 		const std::string qualifiedKey = section.name + "." + item.name;
 		if (addedKeySet.count(qualifiedKey))
 			return {item.defaultValue, " # (added by schema update)"};
@@ -329,10 +327,6 @@ std::string evolveINI(
         orphanedSections += "\n";
     }
 
-	
-    std::cout << "ini_config_reader.cpp evolveINI()::header: \'" << header<< "\'" << std::endl;
-    
-    std::cout << "ini_config_reader.cpp evolveINI() complete" << std::endl;
     return formatINI(currentSchema, newValueComment, deprecationKeyComments, orphanedSections, header);    
 }
 

@@ -159,7 +159,6 @@ void logEvolutionResult(
 	std::ostream& out)
 {
 	const std::size_t n = result.numberOfConflicts();
-	out << "[SchemaEvolver] " << SchemaEvolutionResult::to_string(result) << "\n";
 	out << "[SchemaEvolver] " << n << " change(s) applied to '" << filePath << "'.\n";
 
 	for (const auto& addedSection : result.addedSections)

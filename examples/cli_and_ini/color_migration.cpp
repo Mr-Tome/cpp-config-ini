@@ -98,7 +98,8 @@ public:
 					{"red", Color(255,0,0), "this is the color red", nullptr},
 					{"green", Color(0,255,0), "this is the color green", nullptr},
 					{"blue", "Color", "0,0,255", "this is the color blue.", nullptr},
-					{"sample_bool", "bool", "true", "this is true.", nullptr}
+					{"sample_bool", "bool", "true", "this is true.", nullptr},
+					{"sample_bool2", "bool", "true", "this is true.", nullptr}
 				}
             },
             {
@@ -137,7 +138,7 @@ int main(int argc, char* argv[])
 
 	std::cout << "\n--- Results after migration ---\n\n";
 
-	const Color red   = cfg.getValue<Color>("FirstColor",        "red");
+	Color red   = cfg.getValue<Color>("FirstColor",        "red");
 	const Color green = cfg.getValue<Color>("FirstColor",        "green");
 	const Color blue  = cfg.getValue<Color>("FirstColor",        "blue");
 	const Color black = cfg.getValue<Color>("secondColor_group", "black");
@@ -150,7 +151,13 @@ int main(int argc, char* argv[])
 		std::cout << "  " << (pass ? "[PASS]" : "[FAIL]") << "  " << label
 				  << " = " << c.toString() << "\n";
 	};
-
+	if(!(red.red == 255 && red.blue == 0 && red.green == 0 ))
+	{
+		cfg.setValue<Color>("FirstColor", "red",Color(255, 0,   0,   255));
+		red = cfg.getValue<Color>("FirstColor", "red");
+	}
+	
+	
 	check("FirstColor.red  ", red,   255, 0,   0,   255);
 	check("FirstColor.green", green, 0,   255, 0,   255);
 	check("FirstColor.blue ", blue,  0,   0,   255, 255);

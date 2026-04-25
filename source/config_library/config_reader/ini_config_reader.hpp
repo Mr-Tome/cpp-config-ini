@@ -124,8 +124,11 @@ public:
 			const uint32_t fileVersion = Migration::parseSchemaVersion(this->filepath);
 			std::cout << "[--schema-dry-run] Current Schema version: " << schemaVersion << "\n"
 			          << "File's Schema version: " << fileVersion << "\n";
-			rawConfig = Migration::applyMigrations(
+			
+			auto migrationPair = Migration::applyMigrations(
 				std::move(rawConfig), d.getMigrations(), fileVersion, schemaVersion);
+			rawConfig = std::move(migrationPair.first);
+			Migration::logMigrationResult(migrationPair.second, this->filepath);
 		}
 
 		const auto result = evolveFileWithSchema(
@@ -176,8 +179,11 @@ void runSchemaEvolution(
 		std::cout << "File\'s Schema Version: " << fileVersion << std::endl;
 		
 		versionHeaderChanged = (fileVersion != schemaVersion);
-		rawConfig = Migration::applyMigrations(
+		
+		auto migrationPair = Migration::applyMigrations(
 			std::move(rawConfig), d.getMigrations(), fileVersion, schemaVersion);
+		rawConfig = std::move(migrationPair.first);
+		Migration::logMigrationResult(migrationPair.second, this->filepath);
 		
 		versionHeader = std::string(Migration::schemaVersionPrefix) 
 					  + std::to_string(schemaVersion);

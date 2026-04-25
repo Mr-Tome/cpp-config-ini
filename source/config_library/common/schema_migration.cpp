@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <fstream>
 #include <stdexcept>
+#include <iostream>
+#include <ostream>
 #include "schema_migration.hpp"
 #include "config_lib_internal_utility.hpp"
 
@@ -84,7 +86,8 @@ std::string maybeTransform(
 
 void applyRenames(
 	RawConfigMap& rawConfig,
-	const std::vector<const SchemaMigration*>& applicable)
+	const std::vector<const SchemaMigration*>& applicable,
+	MigrationResult& result)
 {
 	for (const auto* m : applicable)
 	{
@@ -95,7 +98,8 @@ void applyRenames(
 		if (!rawConfig.at(m->oldSection).count(m->oldKey)) 
 			continue;
 
-		const std::string value = maybeTransform(rawConfig.at(m->oldSection).at(m->oldKey), m->transform);
+		const std::string oldValue = rawConfig.at(m->oldSection).at(m->oldKey);
+		const std::string newValue = maybeTransform(oldValue, m->transform);
 
 		// if we erase first and it's a rename-to-self (transformInPlace):
 		// will avoid a redundant copy
@@ -103,13 +107,23 @@ void applyRenames(
 		if (rawConfig.at(m->oldSection).empty())
 			rawConfig.erase(m->oldSection);
 
-		rawConfig[m->newSection][m->newKey] = value;
+		rawConfig[m->newSection][m->newKey] = newValue;
+		
+		MigrationChange change;
+		change.oldSection = m->oldSection;
+		change.oldKey     = m->oldKey;
+		change.newSection = m->newSection;
+		change.newKey     = m->newKey;
+		change.oldValue   = oldValue;
+		change.newValue   = newValue;
+		result.changes.push_back(change);
 	}
 }
 
 void applyRenameSections(
 	RawConfigMap& rawConfig,
-	const std::vector<const SchemaMigration*>& applicable)
+	const std::vector<const SchemaMigration*>& applicable,
+	MigrationResult& result)
 {
 	for (const auto* m : applicable)
 	{
@@ -126,13 +140,35 @@ void applyRenameSections(
 			if (!rawConfig.at(m->oldSection).count(child.oldKey)) 
 				continue;
 
-			rawConfig[m->newSection][child.newKey] = maybeTransform(rawConfig.at(m->oldSection).at(child.oldKey), child.transform);
+			const std::string oldValue = rawConfig.at(m->oldSection).at(child.oldKey);
+			const std::string newValue = maybeTransform(oldValue, child.transform);
+			rawConfig[m->newSection][child.newKey] = newValue;
 			rawConfig[m->oldSection].erase(child.oldKey);
+			
+			MigrationChange change;
+			change.oldSection = m->oldSection;
+			change.oldKey     = child.oldKey;
+			change.newSection = m->newSection;
+			change.newKey     = child.newKey;
+			change.oldValue   = oldValue;
+			change.newValue   = newValue;
+			result.changes.push_back(change);
 		}
 
 		// b) move all remaining keys from oldSection to newSection.
 		for (const auto& kv : rawConfig.at(m->oldSection))
+		{
 			rawConfig[m->newSection][kv.first] = kv.second;
+			
+			MigrationChange change;
+			change.oldSection = m->oldSection;
+			change.oldKey     = kv.first;
+			change.newSection = m->newSection;
+			change.newKey     = kv.first;
+			change.oldValue   = kv.second;
+			change.newValue   = kv.second;
+			result.changes.push_back(change);
+		}
 		rawConfig.erase(m->oldSection);
 
 		// c) TransformKey children...all keys are now in newSection at their final names.
@@ -149,27 +185,98 @@ void applyRenameSections(
 					+ "' in renameSection '" + m->oldSection + "' -> '"
 					+ m->newSection + "' has a null transform function.");
 
-			rawConfig[m->newSection][child.oldKey] = child.transform(rawConfig.at(m->newSection).at(child.oldKey));
+			const std::string oldValue = rawConfig.at(m->newSection).at(child.oldKey);
+			const std::string newValue = child.transform(oldValue);
+			rawConfig[m->newSection][child.oldKey] = newValue;
+
+			// update the entire section move change record if it exists, otherwise add new entry
+			bool found = false;
+			for (auto& change : result.changes)
+			{
+				if (change.newSection == m->newSection && change.newKey == child.oldKey)
+				{
+					change.newValue = newValue;
+					found = true;
+					break;
+				}
+			}
+			if (!found)
+			{
+				MigrationChange change;
+				change.oldSection = m->newSection;
+				change.oldKey     = child.oldKey;
+				change.newSection = m->newSection;
+				change.newKey     = child.oldKey;
+				change.oldValue   = oldValue;
+				change.newValue   = newValue;
+				result.changes.push_back(change);
+			}
 		}
 	}
 }
 
 } // namespace anonymous
 
-RawConfigMap applyMigrations(
+std::pair<RawConfigMap, MigrationResult> applyMigrations(
 	RawConfigMap rawConfig,
 	const std::vector<SchemaMigration>& migrations,
 	uint32_t fileVersion,
 	uint32_t schemaVersion)
 {
-	auto applicable = collectMigrationsAcrossVersionGap(migrations, 
+	MigrationResult result;
+	result.fileVersion = fileVersion;
+	result.schemaVersion = schemaVersion;
+	
+	const auto applicable = collectMigrationsAcrossVersionGap(migrations, 
 											fileVersion, schemaVersion);
 
-	applyRenames(rawConfig, applicable);
-	applyRenameSections(rawConfig, applicable);
+	applyRenames(rawConfig, applicable, result);
+	applyRenameSections(rawConfig, applicable, result);
 	
-	return rawConfig;
-	
+	return {std::move(rawConfig), std::move(result)};
+}
+
+void logMigrationResult(
+	const MigrationResult& result,
+	const std::string& filePath,
+	std::ostream& out)
+{
+	if (!result.ranAny())
+	{
+		out << "[Migration] No migrations applied to '" << filePath << "'"
+		    << " (file v" << result.fileVersion
+		    << " already at schema v" << result.schemaVersion << ").\n"
+		    << "[Migration] Note: NoConflict from schema evolver is expected"
+		       " when migrations pre-transformed all values.\n";
+		return;
+	}
+
+	out << "[Migration] " << result.changes.size()
+	    << " migration(s) applied to '" << filePath << "'"
+	    << " (file v" << result.fileVersion
+	    << " -> schema v" << result.schemaVersion << "):\n";
+
+	for (const auto& c : result.changes)
+	{
+		const bool keyMoved     = (c.oldSection != c.newSection || c.oldKey != c.newKey);
+		const bool valueChanged = (c.oldValue != c.newValue);
+
+		if (keyMoved && valueChanged)
+			out << "[Migration]   Renamed+Transformed  "
+			    << c.oldSection << "." << c.oldKey
+			    << " -> " << c.newSection << "." << c.newKey
+			    << "  '" << c.oldValue << "' -> '" << c.newValue << "'\n";
+		else if (keyMoved)
+			out << "[Migration]   Renamed  "
+			    << c.oldSection << "." << c.oldKey
+			    << " -> " << c.newSection << "." << c.newKey
+			    << "  (value '" << c.oldValue << "' unchanged)\n";
+		else if (valueChanged)
+			out << "[Migration]   Transformed  "
+			    << c.oldSection << "." << c.oldKey
+			    << "  '" << c.oldValue << "' -> '" << c.newValue << "'\n";
+		// identical key and value = idempotent migration, not worth logging
+	}
 }
 
 } // namespace Migration

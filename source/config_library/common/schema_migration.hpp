@@ -161,16 +161,45 @@ inline SectionScopedMigration transformKey(
 // stops scanning at the first non-comment line and non-blank line.	
 uint32_t parseSchemaVersion(const std::string& filePath);
 
+struct MigrationChange
+{
+	std::string oldSection;
+	std::string oldKey;
+	std::string newSection; // same as oldSection for pure transforms
+	std::string newKey;     // same as oldKey for pure transforms
+	std::string oldValue;
+	std::string newValue;
+};
+
+struct MigrationResult
+{
+	uint32_t fileVersion   = 0;
+	uint32_t schemaVersion = 0;
+	std::vector<MigrationChange> changes;
+	
+	bool ranAny() const 
+	{ 
+		return !changes.empty(); 
+	}
+};
+
 // migrates in two passes.
 // first pass is all RenameKey's (including transformInPlace)
 // second pass is RenameSection
 // Note: within each pass, migrations are applied in ascending fromVersion order, e.g.,
 // 1,3,5,6,7,...,n 
-RawConfigMap applyMigrations(
+std::pair<RawConfigMap, MigrationResult>  applyMigrations(
 	RawConfigMap rawConfig,
 	const std::vector<SchemaMigration>& migrations,
 	uint32_t fileVersion,
 	uint32_t schemaVersion);
+	
+// prints what applyMigrations did. 
+// need to call before logEvolutionResult 
+void logMigrationResult(
+	const MigrationResult& result,
+	const std::string& filePath,
+	std::ostream& out = std::cout);
 
 } // namespace Migration
 

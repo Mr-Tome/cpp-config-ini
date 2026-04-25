@@ -56,7 +56,11 @@ struct SectionConflict
 struct SchemaEvolutionResult
 {
 	std::vector<ConfigSection> addedSections;
-	std::vector<SectionConflict> conflictingSections;
+	
+	//note that these arent necessarily conflicting. everything gets stored
+	//as a conflictingSection. Each item has a conflictType. When there's
+	//no conflict, the ConflictType = NoConflict...
+	std::vector<SectionConflict> conflictingSections; 
 	
 	bool fileModified = false;
 	
@@ -67,32 +71,15 @@ struct SchemaEvolutionResult
 			n += section.items.size();
 		for(const auto& conflictingSection : conflictingSections)
 		{
-			std::cout << "Conflicting Section: " << conflictingSection.sectionName << std::endl;
 			n += conflictingSection.removedEntries.size();
 			for(const auto& conflictingItem : conflictingSection.conflictingConfigItems)
-			{
-				std::cout << "\tConflicting Item: " << conflictingItem.configItem.name << std::endl;
-				std::string conflict_type = (conflictingItem.conflictType == ConfigItemConflictType::NoConflict) ? "NoConflict" :
-					((conflictingItem.conflictType == ConfigItemConflictType::TypeMismatch) ? "TypeMismatch" :
-					((conflictingItem.conflictType == ConfigItemConflictType::ValidationFailure) ? "ValidationFailure" : "unknown")) ;
-					
-				std::cout << "\t\tConflict Type: " << conflict_type << std::endl;
 				if(conflictingItem.conflictType != ConfigItemConflictType::NoConflict)
 					++n;
-			}
 		}
 		return n;
 	}
 	
 	bool isClean() const {return !fileModified;}
-		
-	static std::string to_string(const SchemaEvolutionResult& type) 
-	{
-		return "SchemaEvolutionResult:\naddedSections: " + std::to_string(type.addedSections.size())
-			+"\nconflictingSections: " + std::to_string(type.conflictingSections.size()) 
-			+"\nfileModified: " + (type.fileModified ? "true" : "false");
-	}
-	
 };
 
 
