@@ -172,6 +172,9 @@ void runSchemaEvolution(
 	if(schemaVersion > Migration::invalidSchemaVersion)
 	{
 		const uint32_t fileVersion = Migration::parseSchemaVersion(this->filepath);
+		
+		std::cout << "File\'s Schema Version: " << fileVersion << std::endl;
+		
 		versionHeaderChanged = (fileVersion != schemaVersion);
 		rawConfig = Migration::applyMigrations(
 			std::move(rawConfig), d.getMigrations(), fileVersion, schemaVersion);
@@ -197,7 +200,7 @@ void runSchemaEvolution(
 			"Schema evolution: unable to write evolved config to: " + this->filepath);
         
 	out << evolvedContent;
-
+	
 	logEvolutionResult(result, this->filepath);
 			  
 	std::cout << "Finished running Schema Evolution!" << std::endl;
@@ -243,6 +246,12 @@ void writeToFile(
 {
 	std::cout << "Saving the current configuration to: " << path << std::endl;
 
+	const Derived& d = static_cast<const Derived&>(*this);
+	const uint32_t schemaVersion = d.getSchemaVersion();
+	const std::string versionHeader = (schemaVersion > Migration::invalidSchemaVersion)
+		? std::string(Migration::schemaVersionPrefix) + std::to_string(schemaVersion)
+		: std::string(); // TODO (IHT 20260425): should consolidate this across usages...
+	
 	RawConfigMap storedValues;
 	for (const auto& section : configSections)
 		for (const auto& item : section.items)
@@ -257,7 +266,8 @@ void writeToFile(
 			return {storedValues.at(section.name).at(item.name), ""};
 		},
 		[](const std::string&) { return ""; },
-		"");
+		"",
+		versionHeader);
 
 	std::ofstream out(path);
 	if (!out.is_open())

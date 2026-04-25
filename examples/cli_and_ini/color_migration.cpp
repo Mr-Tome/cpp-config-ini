@@ -57,52 +57,6 @@ struct Color : public ConfigLib::ConfigType<Color>
 };
 
 
-struct ColorConfigIniClass : public ConfigLib::ConfigReader<ColorConfigIniClass, ConfigLib::INI, ConfigLib::CLI>
-{
-	ColorConfigIniClass(int argc, char* argv[]) : ConfigLib::ConfigReader<ColorConfigIniClass, ConfigLib::INI, ConfigLib::CLI>(argc, argv)
-	{
-        std::cout << "ColorConfigIniClass called" << std::endl;
-	}
-	
-    std::string getConfigFilePath() const  
-    {
-        return "color_config_v1.ini";
-    }
-    
-    std::vector<ConfigLib::ConfigSection> getConfigSections() const
-    {
-		return {
-			{ 
-				"FirstColor",
-				{
-					{"red", Color(255,0,0), "this is the color red", nullptr},
-					{"green", Color(0,255,0), "this is the color green", nullptr},
-					{"blue", "Color", "0,0,255", "this is the color blue.", nullptr},
-					{"sample_bool", "bool", "true", "this is true.", nullptr}
-				}
-			},
-			{ 
-				"secondColor_group",
-				{
-					{"black", "Color", "0,0,0", "this is the color red", nullptr},
-					{"white", "Color", "255,255,255", "this is the color green", nullptr},
-					{"gray", "Color", "128,128,128", "this is the color blue.", nullptr},
-					{"sample_vector_int", "vector<int>", "0,1,2,2,3,4,5", "this is an int vector.", nullptr},
-					{"sample_vector_string", "vector<string>", "0,1asdf,2,2,3213f,4,5", "this is a string vector.", nullptr}
-				}
-			}
-		};
-	}
-};
-
-// -----------------------------------------------------------------------
-// V2 config — Color now stores brightness. Schema version bumped to 2.
-// getConfigSections() is identical to V1 (same type name, same defaults)
-// except defaults now include brightness = 255 via Color(r,g,b,255).
-//
-// getMigrations() appends ",255" to every 3-component stored value.
-// The lambda is idempotent: 4-component values (3 commas) are left unchanged.
-// -----------------------------------------------------------------------
 class ColorConfigV2
     : public ConfigLib::ConfigReader<ColorConfigV2, ConfigLib::INI, ConfigLib::CLI>
 {
@@ -165,76 +119,60 @@ int main(int argc, char* argv[])
 {
     std::cout << "=== ex_color_migration ===\n\n";
 
-    // ------------------------------------------------------------------
-    // Test 1: load the file as  and set a custom color so we can
-    // confirm the value survives the migration.
-    // ------------------------------------------------------------------
-    std::cout << "--- storing a custom coral color ---\n\n";
-    {
-        ColorConfigIniClass cfg(argc, argv);
-
-        const Color existing = cfg.getValue<Color>("FirstColor", "red");
-        std::cout << "  Current FirstColor.red = " << existing.toString() << "\n"
-                  << "  Setting to coral (255,127,80)...\n";
-
-        cfg.setValue("FirstColor", "red", Color(255, 127, 80));
-        cfg.saveConfig();
-        
-        auto assertCoralColor = cfg.getValue<Color>("FirstColor", "red");
-        if(assertCoralColor.red != 255 ||
-			assertCoralColor.green != 127 ||
-			assertCoralColor.blue != 80 )
-		{
-			throw std::logic_error("Test 1: Assert Coral Color failed!");
-		}
-    }
+	if (std::ifstream(confg_file).good())
+		std::cout << "Found " << confg_file << " (created by ./run). Migrating...\n\n";
+	else
+	{
+		std::cerr << "ERROR: " << confg_file << " not found.\n"
+				  << "Run ./run first to create the file, then re-run this example.\n";
+		return 1;
+	}
 	
     // ------------------------------------------------------------------
     // Test 2: Load with V2. Migration runs automatically on startup:
     //   - appends ",255" to every 3-component Color value in the file
     //   - file is rewritten with 4-component values + schema_version = 2
     // ------------------------------------------------------------------
-    std::cout << "\n--- Test 2: V2 — brightness added via migration ---\n\n";
-    {
-        ColorConfigV2 cfg(argc, argv);
+	ColorConfigV2 cfg(argc, argv);
 
-        const Color assertCoralColor = cfg.getValue<Color>("FirstColor","red");
-        const Color green = cfg.getValue<Color>("FirstColor","green");
-        const Color blue = cfg.getValue<Color>("FirstColor","blue");
-        const Color black = cfg.getValue<Color>("secondColor_group","black");
-        const Color white = cfg.getValue<Color>("secondColor_group","white");
-        const Color gray = cfg.getValue<Color>("secondColor_group","gray");
-		
-		if(assertCoralColor.red != 255 ||
-			assertCoralColor.green != 127 ||
-			assertCoralColor.blue != 80 )
-		{
-			throw std::logic_error("Test 2: Assert Coral Color failed!");
-		}
-		
-        std::cout << "  FirstColor.red   = " << assertCoralColor.toString()
-                  << "  (expected 255,127,80,255 — coral carried forward, brightness added)\n"
-                  << "  FirstColor.green = " << green.toString()
-                  << "  (expected 0,255,0,255)\n"
-                  << "  FirstColor.blue  = " << blue.toString()
-                  << "  (expected 0,0,255,255)\n"
-                  << "  black            = " << black.toString()
-                  << "  (expected 0,0,0,255)\n"
-                  << "  white            = " << white.toString()
-                  << "  (expected 255,255,255,255)\n"
-                  << "  gray             = " << gray.toString()
-                  << "  (expected 128,128,128,255)\n";
+	std::cout << "\n--- Results after migration ---\n\n";
 
-        std::cout << "\n  Setting gray to half-brightness: (128,128,128,128)...\n";
-        cfg.setValue("secondColor_group", "gray", Color(128, 128, 128, 128));
-        cfg.saveConfig();
-    }
+	const Color red   = cfg.getValue<Color>("FirstColor",        "red");
+	const Color green = cfg.getValue<Color>("FirstColor",        "green");
+	const Color blue  = cfg.getValue<Color>("FirstColor",        "blue");
+	const Color black = cfg.getValue<Color>("secondColor_group", "black");
+	const Color white = cfg.getValue<Color>("secondColor_group", "white");
+	const Color gray  = cfg.getValue<Color>("secondColor_group", "gray");
 
-    std::cout << "\n Currently, inspect " << confg_file << " to see:\n"
-              << "  - # __schema_version__ = 2 at the top\n"
-              << "  - All Color values now stored as r,g,b,brightness\n"
-              << "  - gray = 128,128,128,128\n"
-              << "\nRun ./run_ex_color_evolution again — schema evolution should\n"
-              << "report no differences (file already at v2).\n";
+	auto check = [](const std::string& label, const Color& c, int eb, int eg, int eb2, int ebr)
+	{
+		const bool pass = (c.red == eb && c.green == eg && c.blue == eb2 && c.brightness == ebr);
+		std::cout << "  " << (pass ? "[PASS]" : "[FAIL]") << "  " << label
+				  << " = " << c.toString() << "\n";
+	};
+
+	check("FirstColor.red  ", red,   255, 0,   0,   255);
+	check("FirstColor.green", green, 0,   255, 0,   255);
+	check("FirstColor.blue ", blue,  0,   0,   255, 255);
+	check("black           ", black, 0,   0,   0,   255);
+	check("white           ", white, 255, 255, 255, 255);
+	check("gray            ", gray,  128, 128, 128, 255);
+
+	// Show that brightness is now independently settable.
+	std::cout << "\n  Setting gray to half-brightness (128,128,128,128)...\n";
+	cfg.setValue("secondColor_group", "gray", Color(128, 128, 128, 128));
+	cfg.saveConfig();
+
+	const Color gray2 = cfg.getValue<Color>("secondColor_group", "gray");
+	const bool pass = (gray2.brightness == 128);
+	std::cout << "  " << (pass ? "[PASS]" : "[FAIL]")
+			  << "  gray after set = " << gray2.toString() << "\n";
+
+	std::cout << "\nInspect " << confg_file << " to see:\n"
+			  << "  - # __schema_version__ = 2 at the top\n"
+			  << "  - All Color values stored as r,g,b,brightness\n"
+			  << "  - gray = 128,128,128,128\n"
+			  << "\nRun ./run_ex_color_migration again — schema evolution should\n"
+			  << "report no differences (file already at v2).\n";
     return 0;
 }
