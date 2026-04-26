@@ -229,6 +229,58 @@ std::string formatINI(
 	return output;
 }
 
+std::pair<std::unordered_set<std::string>, std::unordered_set<std::string>>
+buildIniSchemaSets(const std::vector<ConfigSection>& configSections)
+{
+	std::unordered_set<std::string> schemaKeySet;
+	std::unordered_set<std::string> schemaSectionSet;
+	for (const auto& section : configSections)
+	{
+		schemaSectionSet.insert(section.name);
+		for (const auto& item : section.items)
+			schemaKeySet.insert(section.name + "." + item.name);
+	}
+	return {std::move(schemaKeySet), std::move(schemaSectionSet)};
+}
+
+std::string iniDeprecatedKeyLines(
+	const std::string& sectionName,
+	const RawConfigMap& rawConfig,
+	const std::unordered_set<std::string>& schemaKeySet,
+	OrphanedConfigItemPolicy policy)
+{
+	if (policy != OrphanedConfigItemPolicy::CommentOut)
+		return "";
+	const auto it = rawConfig.find(sectionName);
+	if (it == rawConfig.end())
+		return "";
+	std::string lines;
+	for (const auto& kv : it->second)
+		if (!schemaKeySet.count(sectionName + "." + kv.first))
+			lines += "# [deprecated] " + kv.first + " = " + kv.second + "\n";
+	return lines;
+}
+
+std::string iniOrphanedSections(
+	const RawConfigMap& rawConfig,
+	const std::unordered_set<std::string>& schemaSectionSet,
+	OrphanedConfigItemPolicy policy)
+{
+	if (policy != OrphanedConfigItemPolicy::CommentOut)
+		return "";
+	std::string result;
+	for (const auto& rawSection : rawConfig)
+	{
+		if (schemaSectionSet.count(rawSection.first))
+			continue;
+		result += "# [deprecated section: " + rawSection.first + "]\n";
+		for (const auto& kv : rawSection.second)
+			result += "# [deprecated] " + kv.first + " = " + kv.second + "\n";
+		result += "\n";
+	}
+	return result;
+}
+
 std::string evolveINI(
     const std::vector<ConfigSection>& currentSchema,
     const RawConfigMap& rawConfig,
@@ -246,15 +298,10 @@ std::string evolveINI(
 	for (const auto& sc : result.conflictingSections)
 		for (const auto& conflict : sc.conflictingConfigItems)
 			conflictLookup[sc.sectionName + "." + conflict.configItem.name] = &conflict;
-			
-	std::unordered_set<std::string> schemaKeySet;
-	std::unordered_set<std::string> schemaSectionSet;
-	for (const auto& section : currentSchema)
-	{
-		schemaSectionSet.insert(section.name);
-		for (const auto& item : section.items)
-			schemaKeySet.insert(section.name + "." + item.name);
-	}
+
+	const auto schemaSets        = buildIniSchemaSets(currentSchema);
+	const auto& schemaKeySet     = schemaSets.first;
+	const auto& schemaSectionSet = schemaSets.second;
 	
 	//returns the {value, evaluation comment} per config item.
 	auto newValueComment = [&](const ConfigSection& section, const ConfigItem& item)
@@ -290,44 +337,15 @@ std::string evolveINI(
 			+ "! This is a bug in evolveFileWithSchema!");
 	};
 	
-	auto deprecationKeyComments = [&](const std::string& sectionName) -> std::string
-	{
-		if (policy != OrphanedConfigItemPolicy::CommentOut)
-			return "";
-
-		const auto rawSectionIt = rawConfig.find(sectionName);
-		if (rawSectionIt == rawConfig.end())
-			return "";
-
-		std::string lines;
-		for (const auto& rawItem : rawSectionIt->second)
+	return formatINI(
+		currentSchema,
+		newValueComment,
+		[&](const std::string& sectionName) -> std::string
 		{
-			if (!schemaKeySet.count(sectionName + "." + rawItem.first))
-				lines += "# [deprecated] " + rawItem.first
-					   + " = " + rawItem.second + "\n";
-		}
-		return lines;
-	};
-	
-	
-	std::string orphanedSections;
-    for (const auto& rawSection : rawConfig)
-    {
-        if (schemaSectionSet.count(rawSection.first))
-            continue;
-
-        if (policy == OrphanedConfigItemPolicy::Remove)
-            continue;
-
-        // CommentOut (RuntimeError already threw in evolveFileWithSchema):
-        orphanedSections += "# [deprecated section: " + rawSection.first + "]\n";
-        for (const auto& rawItem : rawSection.second)
-            orphanedSections += "# [deprecated] " + rawItem.first
-                             + " = " + rawItem.second + "\n";
-        orphanedSections += "\n";
-    }
-
-    return formatINI(currentSchema, newValueComment, deprecationKeyComments, orphanedSections, header);    
+			return iniDeprecatedKeyLines(sectionName, rawConfig, schemaKeySet, policy);
+		},
+		iniOrphanedSections(rawConfig, schemaSectionSet, policy),
+		header);
 }
 
 } // namespace ConfigLib

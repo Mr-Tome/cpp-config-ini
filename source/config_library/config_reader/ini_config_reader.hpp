@@ -3,6 +3,7 @@
 #include <sstream>
 #include <iostream>
 #include <map>
+#include <unordered_set>
 #include "config_reader_base.hpp"
 #include "PersistenceReaders/IPersistenceReader.hpp"
 #include "../common/schema_evolver.hpp"
@@ -36,7 +37,31 @@ std::string evolveINI(
     const SchemaEvolutionResult& result,
     OrphanedConfigItemPolicy policy,
     const std::string& header = "");
-	
+
+
+// returns "# [deprecated] key = value\n" lines for any keys in rawConfig[sectionName]
+//that are absent from schemaKeySet. 
+//returns "" when policy != CommentOut.
+std::string iniDeprecatedKeyLines(
+    const std::string& sectionName,
+    const RawConfigMap& rawConfig,
+    const std::unordered_set<std::string>& schemaKeySet,
+    OrphanedConfigItemPolicy policy);
+
+//returns "# [deprecated section: X]\n# [deprecated] key = value\n" blocks for
+//every section in rawConfig not present in schemaSectionSet.
+//returns "" when policy != CommentOut.
+std::string iniOrphanedSections(
+    const RawConfigMap& rawConfig,
+    const std::unordered_set<std::string>& schemaSectionSet,
+    OrphanedConfigItemPolicy policy);
+
+//builds {schemaKeySet, schemaSectionSet} from configSections.
+//both sets are always needed together
+std::pair<std::unordered_set<std::string>, std::unordered_set<std::string>>
+buildIniSchemaSets(const std::vector<ConfigSection>& configSections);
+
+    
 //only thing this should be doing is calling saveConfig
 template<typename Derived, bool HasCLI = false>
 class INIConfigReader : public ConfigReaderBase, public IPersistenceReader
@@ -156,7 +181,8 @@ public:
 	}
 	
 private:
-
+	RawConfigMap postEvolutionRawConfig;
+	
 void runSchemaEvolution(
 	OrphanedConfigItemPolicy policy,
 	const std::vector<ConfigSection>& mergedSections)
@@ -190,6 +216,8 @@ void runSchemaEvolution(
 	}
 	
 	const auto result = evolveFileWithSchema(rawConfig, mergedSections, policy);
+	
+	postEvolutionRawConfig = rawConfig;
 	
 	if(!result.fileModified && !versionHeaderChanged)
 	{
@@ -256,13 +284,19 @@ void writeToFile(
 	const uint32_t schemaVersion = d.getSchemaVersion();
 	const std::string versionHeader = (schemaVersion > Migration::invalidSchemaVersion)
 		? std::string(Migration::schemaVersionPrefix) + std::to_string(schemaVersion)
-		: std::string(); // TODO (IHT 20260425): should consolidate this across usages...
+		: std::string();
+
+	const auto schemaSets = buildIniSchemaSets(configSections);
+	const auto& schemaKeySet     = schemaSets.first;
+	const auto& schemaSectionSet = schemaSets.second;
 	
 	RawConfigMap storedValues;
 	for (const auto& section : configSections)
 		for (const auto& item : section.items)
 			if (item.persistence != Persistence::Volatile)
 				storedValues[section.name][item.name] = this->sections.at(section.name).getValues().at(item.name)->toString();
+	
+	const OrphanedConfigItemPolicy policy = d.getOrphanedConfigItemPolicy();
 
 	std::string content = formatINI(
 		configSections,
@@ -271,8 +305,12 @@ void writeToFile(
 		{
 			return {storedValues.at(section.name).at(item.name), ""};
 		},
-		[](const std::string&) { return ""; },
-		"",
+		[&](const std::string& sectionName) -> std::string
+		{
+			return iniDeprecatedKeyLines(
+				sectionName, postEvolutionRawConfig, schemaKeySet, policy);
+		},
+		iniOrphanedSections(postEvolutionRawConfig, schemaSectionSet, policy),
 		versionHeader);
 
 	std::ofstream out(path);
