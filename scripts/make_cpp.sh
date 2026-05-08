@@ -10,26 +10,24 @@ destination_dep="$destination/cmake-$cmake_ver-$op_sys"
 CMAKE="$destination_dep"/bin/cmake.exe
 GCC="$destination"/mingw64/bin/gcc.exe
 
-if [ -d "$destination_dep" ]; then
-	## Check if the Makefile exists
-	#echo "Checking if Makefile exists."
-	#if [[ ! -f "Makefile" ]]; then
-	#	# If the Makefile does not exist, generate it using CMake
-	#	echo "Generating Makefile using CMake..."
-	#	#$CMAKE -B"build"
-	#	echo "Finished Generating Makefile using CMake."
-	#else
-	#	echo "Makefile already exists."
-	#fi
+os_type="$(uname -s)"
 
-	# Build the project using make
+if [[ "$os_type" == "Linux" ]]; then
+	if ! command -v cmake &>/dev/null || ! command -v ninja &>/dev/null; then
+		echo "cmake or ninja not found, please run ./configure"
+		exit 1
+	fi
 	echo "Building the project using Ninja..."
-#	"$CMAKE" -B"build" -G Ninja
-cmake  -B"build" -G Ninja
+	cmake -B"build" -G Ninja
 	echo "Finished building the project."
 	cd build
 	ninja
- #$GCC source/main.cpp -o main
+elif [ -d "$destination_dep" ]; then
+	echo "Building the project using Ninja..."
+	"$CMAKE" -B"build" -G Ninja
+	echo "Finished building the project."
+	cd build
+	ninja
 else
 	echo "CMake v$cmake_ver does not exist, please run ./configure"
 fi
