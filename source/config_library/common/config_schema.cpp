@@ -81,6 +81,9 @@ std::vector<ConfigSection> mergeDuplicateSections(const std::vector<ConfigSectio
 }
 
 
+namespace Internal
+{
+
 SchemaLookup buildSchemaLookup(const std::vector<ConfigSection>& sections)
 {
 	SchemaLookup lookup;
@@ -99,9 +102,10 @@ SchemaItemLookup buildSchemaItemLookup(const std::vector<ConfigSection>& section
 	return lookup;
 }
 
+} // namespace Internal
 
 // compile-time check
-static_assert(validateConfigStructure(), 
+static_assert(validateConfigStructure(),
 	"Invalid configuration structure detected at compile-time");
-		
+
 } // namespace ConfigLib

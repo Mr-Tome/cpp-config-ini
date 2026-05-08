@@ -7,6 +7,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Add the config_library directory
 add_subdirectory(source/config_library)
 
+enable_testing()
+add_subdirectory(tests)
+
 # Add the executable
 add_executable(configs source/main.cpp)
 

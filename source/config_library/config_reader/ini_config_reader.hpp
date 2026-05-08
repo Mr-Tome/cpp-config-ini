@@ -9,60 +9,54 @@
 #include "../common/schema_evolver.hpp"
 #include "../common/schema_migration.hpp"
 
-namespace ConfigLib 
+namespace ConfigLib
+{
+namespace Internal
 {
 
 const std::string& iniInstructions();
 
 void loadConfigFromFile(
 	const std::string& filePath,
-	const std::vector<ConfigSection>& configSections, // from derived type 
-	std::unordered_map<std::string, ConfigSectionStore>& sections);//from store	
+	const std::vector<ConfigSection>& configSections,
+	std::unordered_map<std::string, ConfigSectionStore>& sections);
 
 bool parseRawINI(
-    const std::string& filePath,
-    RawConfigMap& rawConfig);
+	const std::string& filePath,
+	RawConfigMap& rawConfig);
 
 std::string formatINI(
-    const std::vector<ConfigSection>& configSections,
-    std::function<std::pair<std::string, std::string>(
-        const ConfigSection&, const ConfigItem&)> valueSource,
-    std::function<std::string(const std::string& sectionName)> postSectionLines,
-    const std::string& trailingContent,
-	const std::string& header="");
+	const std::vector<ConfigSection>& configSections,
+	std::function<std::pair<std::string, std::string>(
+		const ConfigSection&, const ConfigItem&)> valueSource,
+	std::function<std::string(const std::string& sectionName)> postSectionLines,
+	const std::string& trailingContent,
+	const std::string& header = "");
 
 std::string evolveINI(
-    const std::vector<ConfigSection>& currentSchema,
-    const RawConfigMap& rawConfig,
-    const SchemaEvolutionResult& result,
-    OrphanedConfigItemPolicy policy,
-    const std::string& header = "");
+	const std::vector<ConfigSection>& currentSchema,
+	const RawConfigMap& rawConfig,
+	const SchemaEvolutionResult& result,
+	OrphanedConfigItemPolicy policy,
+	const std::string& header = "");
 
-
-// returns "# [deprecated] key = value\n" lines for any keys in rawConfig[sectionName]
-//that are absent from schemaKeySet. 
-//returns "" when policy != CommentOut.
 std::string iniDeprecatedKeyLines(
-    const std::string& sectionName,
-    const RawConfigMap& rawConfig,
-    const std::unordered_set<std::string>& schemaKeySet,
-    OrphanedConfigItemPolicy policy);
+	const std::string& sectionName,
+	const RawConfigMap& rawConfig,
+	const std::unordered_set<std::string>& schemaKeySet,
+	OrphanedConfigItemPolicy policy);
 
-//returns "# [deprecated section: X]\n# [deprecated] key = value\n" blocks for
-//every section in rawConfig not present in schemaSectionSet.
-//returns "" when policy != CommentOut.
 std::string iniOrphanedSections(
-    const RawConfigMap& rawConfig,
-    const std::unordered_set<std::string>& schemaSectionSet,
-    OrphanedConfigItemPolicy policy);
+	const RawConfigMap& rawConfig,
+	const std::unordered_set<std::string>& schemaSectionSet,
+	OrphanedConfigItemPolicy policy);
 
-//builds {schemaKeySet, schemaSectionSet} from configSections.
-//both sets are always needed together
 std::pair<std::unordered_set<std::string>, std::unordered_set<std::string>>
 buildIniSchemaSets(const std::vector<ConfigSection>& configSections);
 
-    
-//only thing this should be doing is calling saveConfig
+} // namespace Internal
+
+
 template<typename Derived, bool HasCLI = false>
 class INIConfigReader : public ConfigReaderBase, public IPersistenceReader
 {
@@ -70,15 +64,15 @@ class INIConfigReader : public ConfigReaderBase, public IPersistenceReader
 			  const std::string& configFilePath)
 	{
 		auto mergedSections = mergeDuplicateSections(d.getConfigSections());
-		
+
 		if(!HasCLI)
 			assertNoVolatileFieldsInINIOnlyReader(mergedSections);
-			
+
 		this->filepath = configFilePath.empty() ? d.getConfigFilePath() : configFilePath;
 		initialize(mergedSections);
 		generateConfigFileIfNeeded(this->filepath, mergedSections);
-        runSchemaEvolution(d.getOrphanedConfigItemPolicy(), mergedSections);
-		loadConfigFromFile(this->filepath, mergedSections, this->sections);
+		runSchemaEvolution(d.getOrphanedConfigItemPolicy(), mergedSections);
+		Internal::loadConfigFromFile(this->filepath, mergedSections, this->sections);
 	}
 public:
 	INIConfigReader()
@@ -86,31 +80,31 @@ public:
 		const Derived& d = static_cast<Derived&>(*this);
 		init(d, d.getConfigFilePath());
 	}
-	
+
 	explicit INIConfigReader(const std::string& configFilePathOverride)
 	{
 		init(static_cast<Derived&>(*this), configFilePathOverride);
 	}
-	
+
 	OrphanedConfigItemPolicy getOrphanedConfigItemPolicy() const
-    {
-        return OrphanedConfigItemPolicy::CommentOut;
-    }
-	
+	{
+		return OrphanedConfigItemPolicy::CommentOut;
+	}
+
 	uint32_t getSchemaVersion() const
 	{
 		std::cout << "ini_config_reader.hpp: getSchemaVersion() " << std::endl;
 		return Migration::invalidSchemaVersion;
 	}
 	std::vector<SchemaMigration> getMigrations() const { return {}; }
-	
+
 	void saveConfig() const
 	{
 		const Derived& d = static_cast<const Derived&>(*this);
 		auto mergedSections = mergeDuplicateSections(d.getConfigSections());
 		writeToFile(mergedSections, this->filepath);
 	}
-	
+
 	void persistSave(const std::vector<ConfigSection>& configSections) const override
 	{
 		writeToFile(configSections, this->filepath);
@@ -135,13 +129,13 @@ public:
 		writeToFile(configSections, exportPath);
 		std::cout << "--export: wrote config to '" << exportPath << "'." << std::endl;
 	}
-	
+
 	void persistSchemaDryRun(const std::vector<ConfigSection>& mergedSections) const override
 	{
 		const Derived& d = static_cast<const Derived&>(*this);
 
 		RawConfigMap rawConfig;
-		parseRawINI(this->filepath, rawConfig);
+		Internal::parseRawINI(this->filepath, rawConfig);
 
 		const uint32_t schemaVersion = d.getSchemaVersion();
 		if (schemaVersion > Migration::invalidSchemaVersion)
@@ -149,7 +143,7 @@ public:
 			const uint32_t fileVersion = Migration::parseSchemaVersion(this->filepath);
 			std::cout << "[--schema-dry-run] Current Schema version: " << schemaVersion << "\n"
 			          << "File's Schema version: " << fileVersion << "\n";
-			
+
 			auto migrationPair = Migration::applyMigrations(
 				std::move(rawConfig), d.getMigrations(), fileVersion, schemaVersion);
 			rawConfig = std::move(migrationPair.first);
@@ -163,7 +157,7 @@ public:
 		logEvolutionResult(result, this->filepath);
 		std::exit(0);
 	}
-	
+
 	void persistSchemaVersion() const override
 	{
 		const Derived& d = static_cast<const Derived&>(*this);
@@ -179,10 +173,10 @@ public:
 
 		std::exit(0);
 	}
-	
+
 private:
 	RawConfigMap postEvolutionRawConfig;
-	
+
 void runSchemaEvolution(
 	OrphanedConfigItemPolicy policy,
 	const std::vector<ConfigSection>& mergedSections)
@@ -191,52 +185,52 @@ void runSchemaEvolution(
 	const Derived& d = static_cast<const Derived&>(*this);
 	const uint32_t schemaVersion = d.getSchemaVersion();
 	std::cout << "Current Schema Version: " << schemaVersion << std::endl;
-	
+
 	RawConfigMap rawConfig;
-	parseRawINI(this->filepath, rawConfig);
-	
+	Internal::parseRawINI(this->filepath, rawConfig);
+
 	std::string versionHeader;
 	bool versionHeaderChanged = false;
-	
+
 	if(schemaVersion > Migration::invalidSchemaVersion)
 	{
 		const uint32_t fileVersion = Migration::parseSchemaVersion(this->filepath);
-		
-		std::cout << "File\'s Schema Version: " << fileVersion << std::endl;
-		
+
+		std::cout << "File's Schema Version: " << fileVersion << std::endl;
+
 		versionHeaderChanged = (fileVersion != schemaVersion);
-		
+
 		auto migrationPair = Migration::applyMigrations(
 			std::move(rawConfig), d.getMigrations(), fileVersion, schemaVersion);
 		rawConfig = std::move(migrationPair.first);
 		Migration::logMigrationResult(migrationPair.second, this->filepath);
-		
-		versionHeader = std::string(Migration::schemaVersionPrefix) 
+
+		versionHeader = std::string(Migration::schemaVersionPrefix)
 					  + std::to_string(schemaVersion);
 	}
-	
+
 	const auto result = evolveFileWithSchema(rawConfig, mergedSections, policy);
-	
+
 	postEvolutionRawConfig = rawConfig;
-	
+
 	if(!result.fileModified && !versionHeaderChanged)
 	{
 		std::cout << "Schema Evolution found no differences!" << std::endl;
 		return;
 	}
-		
-	const std::string evolvedContent = evolveINI(mergedSections, 
+
+	const std::string evolvedContent = Internal::evolveINI(mergedSections,
 			rawConfig, result, policy, versionHeader);
-	
+
 	std::ofstream out(this->filepath);
 	if (!out.is_open())
 		throw std::runtime_error(
 			"Schema evolution: unable to write evolved config to: " + this->filepath);
-        
+
 	out << evolvedContent;
-	
+
 	logEvolutionResult(result, this->filepath);
-			  
+
 	std::cout << "Finished running Schema Evolution!" << std::endl;
 }
 
@@ -245,19 +239,18 @@ void generateConfigFileIfNeeded(
 	const std::vector<ConfigSection>& mergedSections)
 {
 	std::ifstream file(filePath);
-	
-	// TODO (IHT): Update to boost::filesystem::exists(filePath)
+
 	if (file.is_open()) {
 		std::cout << "Configuration file already exists. Skipping generation." << std::endl;
 		return;
 	}
 
-	if (!validateConfig(mergedSections)) 
+	if (!validateConfig(mergedSections))
 	{
 		throw std::runtime_error("Invalid configuration detected at runtime");
 	}
 
-	std::string configContent = formatINI(
+	std::string configContent = Internal::formatINI(
 		mergedSections,
 		[](const ConfigSection&, const ConfigItem& item)
 			-> std::pair<std::string, std::string>
@@ -268,15 +261,15 @@ void generateConfigFileIfNeeded(
 		"");
 
 	std::ofstream configFile(filePath);
-	if (!configFile.is_open()) 
+	if (!configFile.is_open())
 		throw std::runtime_error("Unable to open file for writing: " + filePath);
-	
+
 	configFile << configContent;
 }
 
 void writeToFile(
-        const std::vector<ConfigSection>& configSections,
-        const std::string& path) const
+		const std::vector<ConfigSection>& configSections,
+		const std::string& path) const
 {
 	std::cout << "Saving the current configuration to: " << path << std::endl;
 
@@ -286,19 +279,19 @@ void writeToFile(
 		? std::string(Migration::schemaVersionPrefix) + std::to_string(schemaVersion)
 		: std::string();
 
-	const auto schemaSets = buildIniSchemaSets(configSections);
+	const auto schemaSets        = Internal::buildIniSchemaSets(configSections);
 	const auto& schemaKeySet     = schemaSets.first;
 	const auto& schemaSectionSet = schemaSets.second;
-	
+
 	RawConfigMap storedValues;
 	for (const auto& section : configSections)
 		for (const auto& item : section.items)
 			if (item.persistence != Persistence::Volatile)
 				storedValues[section.name][item.name] = this->sections.at(section.name).getValues().at(item.name)->toString();
-	
+
 	const OrphanedConfigItemPolicy policy = d.getOrphanedConfigItemPolicy();
 
-	std::string content = formatINI(
+	std::string content = Internal::formatINI(
 		configSections,
 		[&storedValues](const ConfigSection& section, const ConfigItem& item)
 			-> std::pair<std::string, std::string>
@@ -307,10 +300,10 @@ void writeToFile(
 		},
 		[&](const std::string& sectionName) -> std::string
 		{
-			return iniDeprecatedKeyLines(
+			return Internal::iniDeprecatedKeyLines(
 				sectionName, postEvolutionRawConfig, schemaKeySet, policy);
 		},
-		iniOrphanedSections(postEvolutionRawConfig, schemaSectionSet, policy),
+		Internal::iniOrphanedSections(postEvolutionRawConfig, schemaSectionSet, policy),
 		versionHeader);
 
 	std::ofstream out(path);

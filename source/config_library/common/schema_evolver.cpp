@@ -76,7 +76,7 @@ SchemaEvolutionResult evolveFileWithSchema(
 {
 	SchemaEvolutionResult result;
 	
-	const auto schemaLookup = buildSchemaLookup(currentSchema);
+	const auto schemaLookup = Internal::buildSchemaLookup(currentSchema);
 	const auto schemaKeySet = buildSchemaKeySet(currentSchema);
 	
 	for (const auto& section : currentSchema)

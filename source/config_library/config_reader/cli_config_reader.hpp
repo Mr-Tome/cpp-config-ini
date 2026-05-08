@@ -32,22 +32,19 @@ class CLIFeatureLayer : public Base
 	{
 		const Derived& d = static_cast<Derived&>(*this);
 		const auto configSections = mergeDuplicateSections(d.getConfigSections());
-		
-		const CLIKeyMap keyMap = buildCLIKeyMap(configSections);
-		
+
+		const Internal::CLIKeyMap keyMap = Internal::buildCLIKeyMap(configSections);
+
 		bool flatEnabled = isFlatEnabled(d);
-		
-		const ParsedCLIArgs parsed = parseCLIArgs(this->rawCLIArgs,
-														configSections,
-														keyMap,
-														flatEnabled);
-		
-														
+
+		const Internal::ParsedCLIArgs parsed = Internal::parseCLIArgs(
+			this->rawCLIArgs, configSections, keyMap, flatEnabled);
+
 		helpIfNeeded(configSections, parsed, keyMap, flatEnabled);
-		applyCLIOverrides(configSections,parsed);
-		
+		applyCLIOverrides(configSections, parsed);
+
 		//(IHT 2026.03.18) This needs to go last in this constructor atm,
-		// because it's acting on a fully resolved stated 
+		// because it's acting on a fully resolved state
 		// of this class and base classes
 		parsePostConstructionSystemFlags(configSections, parsed);
 	}
@@ -58,8 +55,8 @@ public:
 		init();
 	}
 	
-	CLIFeatureLayer(int argc, char* argv[]) 
-		: Base(preParseArgsForConfigPath(argc, argv))
+	CLIFeatureLayer(int argc, char* argv[])
+		: Base(Internal::preParseArgsForConfigPath(argc, argv))
 	{
 		std::cout << "CLIFeatureLayer argc & argv constructor called" << std::endl;
 		for (int i = 0; i < argc; ++i) rawCLIArgs.emplace_back(argv[i]);
@@ -153,7 +150,7 @@ private:
 	{
 		bool flatEnabled = d.flattenCLIArgs();
 		const std::string flatPrefix = "--flat=";
-		
+
 		for(const auto& arg : this->rawCLIArgs)
 		{
 			if(arg.size() > flatPrefix.size() &&
@@ -169,11 +166,11 @@ private:
 			}
 		}
 		return flatEnabled;
-	}	
-	
+	}
+
 	void parsePostConstructionSystemFlags(
 		const std::vector<ConfigSection>& configSections,
-		const ParsedCLIArgs& parsed)
+		const Internal::ParsedCLIArgs& parsed)
 	{
 		
 		if (parsed.flags.schema_dry_run)
@@ -199,8 +196,8 @@ private:
 	
 	void helpIfNeeded(
 		const std::vector<ConfigSection>& configSections,
-		const ParsedCLIArgs& parsed,
-		const CLIKeyMap& keyMap,
+		const Internal::ParsedCLIArgs& parsed,
+		const Internal::CLIKeyMap& keyMap,
 		bool flatEnabled) const
 	{
 		if(parsed.flags.help)
@@ -212,10 +209,9 @@ private:
 	
 	void applyCLIOverrides(
 		const std::vector<ConfigSection>& configSections,
-		const ParsedCLIArgs& parsed)
+		const Internal::ParsedCLIArgs& parsed)
 	{
-		// sectionName -> itemName -> ConfigItem* 
-		const auto schemaLookup = buildSchemaItemLookup(configSections);
+		const auto schemaLookup = Internal::buildSchemaItemLookup(configSections);
 		
 		auto& registry = TypeRegistry::instance();
 		for (const auto& kv : parsed.values)
@@ -268,7 +264,7 @@ private:
 	
 	void checkIfVolatileItemsWereParsed(
 			const std::vector<ConfigSection>& configSections,
-			const ParsedCLIArgs& parsed)
+			const Internal::ParsedCLIArgs& parsed)
 	{
 		std::vector<std::string> missingVolatile;
 		
@@ -302,7 +298,7 @@ private:
 	
 	void printHelp(
 		const std::vector<ConfigSection>& configSections,
-		const CLIKeyMap& keyMap, 
+		const Internal::CLIKeyMap& keyMap,
 		bool flatEnabled) const
 	{
 		std::string dashes = "--------------------------";

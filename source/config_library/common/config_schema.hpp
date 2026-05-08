@@ -69,16 +69,17 @@ public:
 		/* brace init with a lambda forces a compile error on narrowing.
 		e.g., make<int>("x", 1.3, ...) fails on check({...}) because cannot narrow double to int.
 		* */
+		/* brace init forces a compile error on narrowing. Use validated
+		(not the potentially moved-from defaultVal) for toString. */
 		T validated{ std::forward<U>(defaultVal) };
-		(void)validated;
-	   
+
 		return ConfigItem(
 		   ForcePrivateConstructorToBeCalled{},
 		   itemName,
 		   TypeParser<T>::typeName(),
-		   TypeParser<T>::toString(defaultVal),
+		   TypeParser<T>::toString(validated),
 		   itemDescription,
-		   rule, 
+		   rule,
 		   p
 		);
    }
@@ -102,14 +103,16 @@ bool validateConfig(const std::vector<ConfigSection>& sections);
 
 std::vector<ConfigSection> mergeDuplicateSections(const std::vector<ConfigSection>& sections);
 
+namespace Internal
+{
 // sectionName -> set of item names. useful for key-existence checks
 using SchemaLookup = std::unordered_map<std::string, std::unordered_set<std::string>>;
 SchemaLookup buildSchemaLookup(const std::vector<ConfigSection>& sections);
 
-// sectionName -> itemName -> ConfigItem*. 
-// useful where the full item metadata is needed
+// sectionName -> itemName -> ConfigItem*.
 // Note: ConfigItem* are valid for the lifetime of 'sections'.
 using SchemaItemLookup = std::unordered_map<std::string, std::unordered_map<std::string, const ConfigItem*>>;
 SchemaItemLookup buildSchemaItemLookup(const std::vector<ConfigSection>& sections);
+} // namespace Internal
 
 } // namespace ConfigLib
