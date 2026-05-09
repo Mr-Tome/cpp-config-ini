@@ -1,81 +1,143 @@
-# CPP Template
+# cpp-config-ini
 
-This is a cpp template project
+A C++20 library for type-safe, schema-driven INI configuration files with CLI override support, validation rules, and schema migration.
 
-A visual summary of this guide:
-```mermaid
-flowchart
-	A[Start]
-	A-->Gitbash[Download Gitbash]
-	Gitbash-->clone["git clone https ://github.com/Mr-Tome/cpp-config-ini.git"]-->configure["./configure"]-->make["./make"] --> run["./run"]
-subgraph "%USERPROFILE%/cpp-template"
-  
-	CMake
-	GCC
-end
+## Features
 
-configure-->|"downloads"|CMake[CMake]
-configure-->|"downloads"|GCC[GCC]
+- **Type-safe access** — compile-time enforcement via C++20 concepts; `getValue<T>()` returns the exact type you declared
+- **INI persistence** — reads and writes standard INI files automatically
+- **CLI overrides** — command-line arguments override any config value at runtime
+- **Custom types** — register your own types by implementing `fromString()` / `toString()` / `typeName()`
+- **Validation rules** — attach constraints (range checks, allowed lists, custom predicates) to any field
+- **Schema migration** — version your schema and define field renames or value transformations between versions
+- **Volatile fields** — mark fields as CLI-only so they are never persisted to disk
 
+## Requirements
 
+- GCC with C++20 support
+- CMake 3.20+
+- Ninja build system
 
-
-
-
-```
-
+The `./configure` script will download and set up CMake and GCC if they are not already present.
 
 ## Getting Started
 
-These instructions will guide you through setting up and configuring the project on your local machine for development and testing purposes.
-
-### Prerequisites
-
-- Ensure you have Git installed on your system (download from here: https://www.git-scm.com/download/win)
-
-### Configuring the basic development dependencies
-
-Clone the repository to your local machine.
-In your Git Bash window, change into the project directory.
-Configure the project by running this command:
-
-	./configure
-
-- ./ is the the bash version of executing a file.
-- configure is the name of the file within the project's root directory that is getting executed.
-- This script checks for dependencies and sets up the necessary configuration files for compiling and installing the software.
-
-### Compiling and Building the project
-
-After you have configured your project, you'll need to compile the necessary cpp project. Compile and build the project bun running this command:
-
-	./make
-	
-### Compiling and Building the project
-
-After you have compiled and built the project, you can run the project running this command:
-
-	./run
+```bash
+git clone https://github.com/Mr-Tome/cpp-config-ini.git
+cd cpp-config-ini
+./configure        # install build dependencies (~/.configuration-dependencies/)
+./make             # compile the project and all examples
+./run              # run the main demo
+```
 
 ### Running Tests
 
-TODO: Explain how to run tests for this system.
+```bash
+cd build && ctest
+```
 
-## Cleaning Up
+All 10 test suites must pass before submitting changes.
 
-If you wish to clean all items configured by the ./configure or ./make script, you can perform a clean operation. This is useful for resetting the machines state to its initial state:
+### Cleaning Up
 
-	./configure clean
-	./make clean
+```bash
+./configure clean  # remove downloaded dependencies
+./make clean       # remove build artifacts
+```
 
-This command will remove any files or configurations that were set up during the `./configure` and `./make` process, allowing you to start fresh.
+## Quick Usage
 
-## How to develop and Modify Files
-- This template uses CMake which is mostly controlled by CMakeLists.txt at the root directory.
-- If you read this CmakeLists.txt file, you'll notice this line
+Derive from `ConfigReader`, specify your persistence modes (`INI`, `CLI`, or both), and declare your schema:
 
-	add_subdirectory(source/cpp)
-	
-- This line tells CMake that it should look for another CMakeLists.txt in the source/cpp directory, but this can be any path you want.
-- If you read the source/cpp/CmakeLists.txt, you'll notice that there's files and directory paths called out. These are included into the compiled executable during run!
-- You may include directories by adding more add_subdirectories within any of the CMakeLists.txt
+```cpp
+#include "config_library/config_reader/config_reader.hpp"
+
+struct MyConfig : public ConfigLib::ConfigReader<MyConfig, ConfigLib::INI>
+{
+    std::string getConfigFilePath() const { return "my_app.ini"; }
+
+    std::vector<ConfigLib::ConfigSection> getConfigSections() const
+    {
+        return {
+            { "Server", {
+                ConfigLib::ConfigItem::make<std::string>("host", std::string("localhost"), "Server hostname", nullptr),
+                ConfigLib::ConfigItem::make<int>("port", 8080, "Server port", nullptr)
+            }}
+        };
+    }
+};
+
+int main()
+{
+    MyConfig config;
+    std::string host = config.getValue<std::string>("Server", "host");
+    int port         = config.getValue<int>("Server", "port");
+    config.saveConfig();
+}
+```
+
+On first run, `my_app.ini` is created with defaults. On subsequent runs it is loaded from disk.
+
+### Adding CLI Overrides
+
+Pass both `INI` and `CLI` as template arguments and forward `argc`/`argv`:
+
+```cpp
+struct MyConfig : public ConfigLib::ConfigReader<MyConfig, ConfigLib::INI, ConfigLib::CLI>
+{
+    MyConfig(int argc, char* argv[])
+        : ConfigLib::ConfigReader<MyConfig, ConfigLib::INI, ConfigLib::CLI>(argc, argv) {}
+    // ...
+};
+```
+
+Fields can then be overridden at runtime: `./my_app --Server.port=9090`
+
+### Validation Rules
+
+```cpp
+static const ValidationRules::BetweenValues between1And65535(1, 65535);
+
+ConfigLib::ConfigItem::make<int>("port", 8080, "Server port", &between1And65535)
+```
+
+Built-in rules: `greaterThanZero`, `BetweenValues`. Custom rules implement the `Rule` interface.
+
+### Custom Types
+
+Inherit from `ConfigLib::ConfigType<T>` and implement three static/const methods:
+
+```cpp
+struct Color : public ConfigLib::ConfigType<Color>
+{
+    int r, g, b;
+    static const char* typeName() { return "Color"; }
+    std::string toString() const { return std::to_string(r)+","+std::to_string(g)+","+std::to_string(b); }
+    static Color fromString(const std::string& s) { /* parse */ }
+};
+```
+
+## Project Structure
+
+```
+cpp-config-ini/
+├── source/
+│   ├── config_library/
+│   │   ├── common/          # ConfigSchema, TypeParser, ValidationRules, SchemaEvolver, Logger
+│   │   └── config_reader/   # ConfigReader, CLIFeatureLayer, INI/CLI persistence
+│   └── main.cpp             # Main demo
+├── examples/                # Standalone example programs (each .cpp is its own executable)
+├── tests/                   # One .cpp per test suite, custom lightweight framework
+├── CMakeLists.txt
+├── configure                # Dependency setup script
+├── make                     # Build script (wraps CMake + Ninja)
+└── run                      # Run script for the main demo
+```
+
+## Examples
+
+The `examples/` directory contains standalone programs that are built automatically with `./make`. Each `.cpp` file compiles to its own executable. See `examples/cli_and_ini/color_migration.cpp` for a full schema migration walkthrough.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
