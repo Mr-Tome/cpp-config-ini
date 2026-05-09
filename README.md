@@ -80,9 +80,26 @@ flowchart TB
     Layers --> API
 ```
 
-## Quick Usage
+## Implementing a Config Class
 
-Derive from `ConfigReader`, specify your persistence modes (`INI`, `CLI`, or both), and declare your schema:
+Inherit from `ConfigLib::ConfigReader<YourClass, Modes...>` and implement the methods below. The table shows everything you can define at a glance:
+
+| Method | Required? | Purpose |
+|---|---|---|
+| `getConfigFilePath()` | **Yes** (INI mode) | Path to the `.ini` file to read/write |
+| `getConfigSections()` | **Yes** | Declares your schema — sections, keys, types, and defaults |
+| `getSchemaVersion()` | No | Enables schema versioning; return the current version number |
+| `getMigrations()` | No | Defines renames and value transforms when upgrading from an older file |
+| `getOrphanedConfigItemPolicy()` | No | What to do with keys in the file that are no longer in the schema |
+| `flattenCLIArgs()` | No | Allow `--key=value` without section prefix (default: `true`) |
+
+---
+
+### Required
+
+Pick a persistence mode — `INI`, `CLI`, or both — as template arguments.
+
+**INI only** (file persistence, no command-line overrides):
 
 ```cpp
 #include "config_library/config_reader/config_reader.hpp"
@@ -101,34 +118,91 @@ struct MyConfig : public ConfigLib::ConfigReader<MyConfig, ConfigLib::INI>
         };
     }
 };
-
-int main()
-{
-    MyConfig config;
-    std::string host = config.getValue<std::string>("Server", "host");
-    int port         = config.getValue<int>("Server", "port");
-    config.saveConfig();
-}
 ```
 
-On first run, `my_app.ini` is created with defaults. On subsequent runs it is loaded from disk.
-
-### Adding CLI Overrides
-
-Pass both `INI` and `CLI` as template arguments and forward `argc`/`argv`:
+**INI + CLI** (file persistence with command-line overrides — forward `argc`/`argv` in the constructor):
 
 ```cpp
 struct MyConfig : public ConfigLib::ConfigReader<MyConfig, ConfigLib::INI, ConfigLib::CLI>
 {
     MyConfig(int argc, char* argv[])
         : ConfigLib::ConfigReader<MyConfig, ConfigLib::INI, ConfigLib::CLI>(argc, argv) {}
-    // ...
+
+    std::string getConfigFilePath() const { return "my_app.ini"; }
+
+    std::vector<ConfigLib::ConfigSection> getConfigSections() const { /* same as above */ }
 };
 ```
 
-Fields can then be overridden at runtime: `./my_app --Server.port=9090`
+On first run, `my_app.ini` is created with your defaults. On subsequent runs it is loaded from disk. CLI arguments override any value at runtime: `./my_app --Server.port=9090`
+
+**Reading and writing values at runtime:**
+
+```cpp
+MyConfig config(argc, argv);
+
+std::string host = config.getValue<std::string>("Server", "host");
+int port         = config.getValue<int>("Server", "port");
+
+config.setValue<int>("Server", "port", 9090);
+config.saveConfig();
+```
+
+---
+
+### Optional
+
+#### Schema versioning and migration
+
+When you rename a field or change a value format, increment `getSchemaVersion()` and describe the upgrade in `getMigrations()`. The library applies the steps automatically when it loads an older file.
+
+```cpp
+uint32_t getSchemaVersion() const { return 2; }
+
+std::vector<ConfigLib::SchemaMigration> getMigrations() const
+{
+    return {
+        ConfigLib::Migration::rename(1, 2, "Server", "hostname", "Server", "host")
+    };
+}
+```
+
+See `examples/cli_and_ini/color_migration.cpp` for a full walkthrough including value transforms.
+
+#### Orphaned item policy
+
+Controls what happens to keys in the INI file that no longer exist in the schema:
+
+```cpp
+ConfigLib::OrphanedConfigItemPolicy getOrphanedConfigItemPolicy() const
+{
+    return ConfigLib::OrphanedConfigItemPolicy::CommentOut; // default
+    // Other options: Remove | RuntimeError
+}
+```
+
+#### Flat CLI args
+
+When `true` (the default), a CLI argument can omit the section prefix if the key is unambiguous across all sections — `--port=9090` resolves to `Server.port` automatically.
+
+```cpp
+bool flattenCLIArgs() const { return false; } // require --Server.port=9090
+```
+
+#### Volatile fields
+
+Mark a field `Persistence::Volatile` to make it CLI-only — it is never written to the INI file and must be supplied on every run.
+
+```cpp
+ConfigLib::ConfigItem::make<std::string>("run_id", std::string(""), "Unique run ID",
+    nullptr, ConfigLib::Persistence::Volatile)
+```
+
+---
 
 ### Validation Rules
+
+Attach a rule as the fourth argument to `ConfigItem::make`:
 
 ```cpp
 static const ValidationRules::BetweenValues between1And65535(1, 65535);
@@ -140,7 +214,7 @@ Built-in rules: `greaterThanZero`, `BetweenValues`. Custom rules implement the `
 
 ### Custom Types
 
-Inherit from `ConfigLib::ConfigType<T>` and implement three static/const methods:
+Inherit from `ConfigLib::ConfigType<T>` and implement three methods:
 
 ```cpp
 struct Color : public ConfigLib::ConfigType<Color>
@@ -148,9 +222,11 @@ struct Color : public ConfigLib::ConfigType<Color>
     int r, g, b;
     static const char* typeName() { return "Color"; }
     std::string toString() const { return std::to_string(r)+","+std::to_string(g)+","+std::to_string(b); }
-    static Color fromString(const std::string& s) { /* parse */ }
+    static Color fromString(const std::string& s) { /* parse r,g,b */ }
 };
 ```
+
+Registration is automatic via the CRTP base — use `Color` in `ConfigItem::make<Color>()` like any built-in type.
 
 ## Project Structure
 
