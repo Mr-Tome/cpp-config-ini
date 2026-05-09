@@ -22,6 +22,14 @@ The `./configure` script will download and set up CMake and GCC if they are not 
 
 ## Getting Started
 
+```mermaid
+flowchart LR
+    A["git clone"] --> B["./configure\ninstall CMake · GCC"]
+    B --> C["./make\nbuild project + examples"]
+    C --> D["./run\nmain demo"]
+    C --> E["cd build && ctest\nall test suites"]
+```
+
 ```bash
 git clone https://github.com/Mr-Tome/cpp-config-ini.git
 cd cpp-config-ini
@@ -43,6 +51,33 @@ All 10 test suites must pass before submitting changes.
 ```bash
 ./configure clean  # remove downloaded dependencies
 ./make clean       # remove build artifacts
+```
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph User["Your Config Class"]
+        UC["struct MyConfig : ConfigReader&lt;MyConfig, INI, CLI&gt;"]
+    end
+
+    subgraph Schema["Schema  —  getConfigSections()"]
+        S["ConfigSection"] --> I["ConfigItem::make&lt;T&gt;()"]
+        I --> V["Validation Rule"]
+        I --> CT["Type\n(int · double · string · vector · custom)"]
+    end
+
+    subgraph Layers["Persistence Layers"]
+        INI["INI Layer"] <-->|"read / write"| File[(".ini file")]
+        CLI["CLI Layer"] -->|"parse"| Argv(["argv[]"])
+    end
+
+    API["getValue&lt;T&gt;()  ·  setValue&lt;T&gt;()  ·  saveConfig()"]
+
+    UC --> Schema
+    UC --> Layers
+    Schema --> API
+    Layers --> API
 ```
 
 ## Quick Usage
