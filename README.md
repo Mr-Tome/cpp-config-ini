@@ -210,7 +210,8 @@ static const ValidationRules::BetweenValues between1And65535(1, 65535);
 ConfigLib::ConfigItem::make<int>("port", 8080, "Server port", &between1And65535)
 ```
 
-Built-in rules: `greaterThanZero`, `BetweenValues`. Custom rules implement the `Rule` interface.
+Built-in singletons (use directly by address): `greaterThanZero`, `greaterThanOrEqualToZero`.
+Parameterized classes (instantiate and keep alive for the lifetime of the config): `BetweenValues(min, max)`, `InList(vector<string>)`. Custom rules implement the `Rule` interface.
 
 ### Custom Types
 
