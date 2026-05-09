@@ -45,6 +45,15 @@ All 10 suites must pass. To run a single suite directly:
 
 Use `TempFile` from `test_framework.hpp` for any test that writes to disk — it cleans up automatically.
 
+Use `SuppressStdout` when constructing a `ConfigReader` inside a test — the library emits diagnostic output to `std::cout` during construction and this keeps test output clean:
+
+```cpp
+SuppressStdout suppress;
+MyConfig cfg;
+```
+
+If your test calls `setLogger()`, always call `setLogger({})` before the test returns to avoid polluting subsequent tests.
+
 ## Adding an Example
 
 Drop a `.cpp` file anywhere under `examples/`. CMake picks it up automatically at build time — no `CMakeLists.txt` changes needed. Each example must have its own `main()`.
@@ -70,7 +79,16 @@ Drop a `.cpp` file anywhere under `examples/`. CMake picks it up automatically a
 
 ## Validation Rules
 
-To add a new built-in rule, implement the `Rule` interface in `common/validation_rules.hpp` and expose it as a `const` singleton (stateless) or factory function (parameterized), following the pattern of `greaterThanZero` and `BetweenValues`.
+The existing built-in rules are:
+
+| Rule | Kind | Usage |
+|---|---|---|
+| `greaterThanZero` | singleton | `&ValidationRules::greaterThanZero` |
+| `greaterThanOrEqualToZero` | singleton | `&ValidationRules::greaterThanOrEqualToZero` |
+| `BetweenValues(min, max)` | parameterized class | `static const ValidationRules::BetweenValues r(0, 100);` |
+| `InList(vector<string>)` | parameterized class | `static const ValidationRules::InList r({"a","b"});` |
+
+To add a new rule, implement the `Rule` interface in `common/validation_rules.hpp`. Expose stateless rules as `const` singletons (like `greaterThanZero`) and parameterized rules as classes with a factory function (like `betweenValues(min, max)`). The caller is responsible for keeping parameterized rule instances alive for the lifetime of any `ConfigItem` that references them — `static const` local variables are the standard pattern.
 
 ## Custom Type Registration
 
