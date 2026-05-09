@@ -360,6 +360,35 @@ static bool test_vector_int_empty_string_gives_empty_vector()
     return true;
 }
 
+static bool test_double_fromString_scientific_notation()
+{
+    double v = TypeParser<double>::fromString("1e5");
+    REQUIRE(v > 99999.0 && v < 100001.0);
+    double v2 = TypeParser<double>::fromString("1.5e-3");
+    REQUIRE(v2 > 0.00149 && v2 < 0.00151);
+    return true;
+}
+
+static bool test_float_fromString_scientific_notation()
+{
+    float v = TypeParser<float>::fromString("2.5e2");
+    REQUIRE(v > 249.9f && v < 250.1f);
+    return true;
+}
+
+static bool test_unsigned_long_long_max_value()
+{
+    REQUIRE_EQ(TypeParser<unsigned long long>::fromString("18446744073709551615"),
+               18446744073709551615ULL);
+    return true;
+}
+
+static bool test_int_isValid_empty_string_returns_false()
+{
+    REQUIRE(TypeParser<int>::isValid("") == false);
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -408,5 +437,9 @@ int main()
         {"TypeParser<vector<double>>: invalid element throws",   test_vector_double_invalid_element_throws},
         {"TypeParser<vector<string>>: elements are trimmed",     test_vector_string_elements_are_trimmed},
         {"TypeParser<vector<int>>: empty string gives empty",    test_vector_int_empty_string_gives_empty_vector},
+        {"TypeParser<double>: scientific notation",               test_double_fromString_scientific_notation},
+        {"TypeParser<float>: scientific notation",                test_float_fromString_scientific_notation},
+        {"TypeParser<unsigned long long>: max value",             test_unsigned_long_long_max_value},
+        {"TypeParser<int>: isValid empty string returns false",   test_int_isValid_empty_string_returns_false},
     });
 }

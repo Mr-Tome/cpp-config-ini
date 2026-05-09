@@ -126,6 +126,21 @@ static bool test_validateConfig_invalid_default_value_returns_false()
     return true;
 }
 
+static bool test_mergeDuplicateSections_three_same_name()
+{
+    using Item = ConfigLib::ConfigItem;
+    std::vector<ConfigLib::ConfigSection> sections = {
+        {"S", {Item::make<int>("a", 1, "a")}},
+        {"S", {Item::make<int>("b", 2, "b")}},
+        {"S", {Item::make<int>("c", 3, "c")}},
+    };
+    auto merged = ConfigLib::mergeDuplicateSections(sections);
+    REQUIRE_EQ(static_cast<int>(merged.size()), 1);
+    REQUIRE_EQ(merged[0].name, std::string("S"));
+    REQUIRE_EQ(static_cast<int>(merged[0].items.size()), 3);
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -139,5 +154,6 @@ int main()
         {"buildSchemaLookup: sections and keys present",     test_buildSchemaLookup_contains_sections_and_keys},
         {"buildSchemaItemLookup: correct pointers",          test_buildSchemaItemLookup_returns_correct_pointers},
         {"validateConfig: invalid default value returns false", test_validateConfig_invalid_default_value_returns_false},
+        {"mergeDuplicateSections: three same-name sections",    test_mergeDuplicateSections_three_same_name},
     });
 }

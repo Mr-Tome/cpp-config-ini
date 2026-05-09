@@ -435,6 +435,30 @@ static bool test_cli_ambiguous_key_qualified_form_works()
     return true;
 }
 
+static bool test_inicli_print_shows_ini_loaded_value()
+{
+    TempFile guard(kINICLIPath);
+    {
+        SuppressStdout s;
+        INICLIConfig base;
+        base.setValue<int>("app", "level", 5);
+        base.saveConfig();
+    }
+    {
+        std::vector<std::string> args = {"prog", "--print"};
+        auto argv = makeArgv(args);
+        std::ostringstream captured;
+        std::streambuf* oldBuf = std::cout.rdbuf(captured.rdbuf());
+        INICLIConfig cfg(static_cast<int>(args.size()), argv.data());
+        std::cout.rdbuf(oldBuf);
+
+        const std::string out = captured.str();
+        REQUIRE(out.find("level") != std::string::npos);
+        REQUIRE(out.find("5")     != std::string::npos);
+    }
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -465,5 +489,6 @@ int main()
         {"INI+CLI: --config= with empty path throws",           test_cli_config_empty_path_throws},
         {"INI+CLI: --export= writes file",                      test_inicli_export_flag_writes_file},
         {"INI+CLI: --export= with empty path throws",           test_cli_export_empty_path_throws},
+        {"INI+CLI: --print shows INI-loaded value",             test_inicli_print_shows_ini_loaded_value},
     });
 }

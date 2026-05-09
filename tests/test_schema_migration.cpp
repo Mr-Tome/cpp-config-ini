@@ -317,6 +317,49 @@ static bool test_logMigrationResult_rename_transform_mentions_keys()
     return true;
 }
 
+static bool test_migration_same_version_range_is_applied()
+{
+    RawConfigMap raw;
+    raw["S"]["a"] = "hello";
+    auto m    = rename(1, 1, "S", "a", "S", "b");
+    auto pair  = applyMigrations(raw, {m}, 1, 1);
+    REQUIRE(pair.second.ranAny() == true);
+    REQUIRE_EQ(pair.first.at("S").at("b"), std::string("hello"));
+    REQUIRE(pair.first.at("S").count("a") == static_cast<std::size_t>(0));
+    return true;
+}
+
+static bool test_transformInPlace_identity_value_unchanged()
+{
+    RawConfigMap raw;
+    raw["S"]["val"] = "42";
+    auto m = transformInPlace(1, 2, "S", "val",
+                [](const std::string& v) { return v; });
+    auto pair = applyMigrations(raw, {m}, 1, 2);
+    REQUIRE_EQ(pair.first.at("S").at("val"), std::string("42"));
+    return true;
+}
+
+static bool test_migration_change_all_fields_are_correct()
+{
+    RawConfigMap raw;
+    raw["OldSec"]["oldK"] = "original";
+    auto m = rename(1, 2, "OldSec", "oldK", "NewSec", "newK",
+                    [](const std::string& v) { return v + "!"; });
+    auto pair = applyMigrations(raw, {m}, 1, 2);
+    const auto& info = pair.second;
+
+    REQUIRE_EQ(static_cast<int>(info.changes.size()), 1);
+    const auto& ch = info.changes[0];
+    REQUIRE_EQ(ch.oldSection, std::string("OldSec"));
+    REQUIRE_EQ(ch.oldKey,     std::string("oldK"));
+    REQUIRE_EQ(ch.newSection, std::string("NewSec"));
+    REQUIRE_EQ(ch.newKey,     std::string("newK"));
+    REQUIRE_EQ(ch.oldValue,   std::string("original"));
+    REQUIRE_EQ(ch.newValue,   std::string("original!"));
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -342,5 +385,8 @@ int main()
         {"logMigrationResult: no migrations",                    test_logMigrationResult_no_migrations_writes_output},
         {"logMigrationResult: with changes",                     test_logMigrationResult_with_changes_writes_output},
         {"logMigrationResult: rename+transform mentions keys",   test_logMigrationResult_rename_transform_mentions_keys},
+        {"migration: same fromVersion==toVersion is applied",     test_migration_same_version_range_is_applied},
+        {"transformInPlace: identity leaves value unchanged",     test_transformInPlace_identity_value_unchanged},
+        {"MigrationChange: all six fields are correct",           test_migration_change_all_fields_are_correct},
     });
 }

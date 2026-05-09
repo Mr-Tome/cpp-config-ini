@@ -650,6 +650,53 @@ static bool test_ini_validation_failure_in_file_falls_back_to_default()
     return true;
 }
 
+static bool test_ini_malformed_section_header_keys_not_loaded()
+{
+    TempFile guard(kBasicPath);
+    {
+        std::ofstream f(kBasicPath);
+        f << "[malformed_section\n"  // missing closing ]
+          << "count = 999\n"
+          << "[test]\n"
+          << "count = 42\nflag = false\nratio = 0.5\nname = hello\n\n";
+    }
+    SuppressStdout s;
+    BasicConfig cfg;
+    REQUIRE_EQ(cfg.getValue<int>("test", "count"), 42);
+    return true;
+}
+
+static bool test_ini_duplicate_key_last_value_wins()
+{
+    TempFile guard(kBasicPath);
+    {
+        std::ofstream f(kBasicPath);
+        f << "[test]\n"
+          << "count = 1\n"
+          << "count = 99\n"  // duplicate: last wins
+          << "flag = false\nratio = 0.5\nname = hello\n\n";
+    }
+    SuppressStdout s;
+    BasicConfig cfg;
+    REQUIRE_EQ(cfg.getValue<int>("test", "count"), 99);
+    return true;
+}
+
+static bool test_ini_value_all_whitespace_gives_empty_string()
+{
+    TempFile guard(kBasicPath);
+    {
+        std::ofstream f(kBasicPath);
+        f << "[test]\n"
+          << "count = 10\nflag = false\nratio = 0.5\n"
+          << "name =    \n\n";  // value is entirely whitespace
+    }
+    SuppressStdout s;
+    BasicConfig cfg;
+    REQUIRE_EQ(cfg.getValue<std::string>("test", "name"), std::string(""));
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -682,5 +729,8 @@ int main()
         {"INI format: key before section header is ignored",          test_ini_key_before_section_header_is_ignored},
         {"INI format: value containing = sign is preserved",          test_ini_value_with_equals_sign_is_preserved},
         {"INI format: validation failure in file uses default",       test_ini_validation_failure_in_file_falls_back_to_default},
+        {"INI format: malformed section header keys not loaded",       test_ini_malformed_section_header_keys_not_loaded},
+        {"INI format: duplicate key last value wins",                  test_ini_duplicate_key_last_value_wins},
+        {"INI format: value of all whitespace gives empty string",     test_ini_value_all_whitespace_gives_empty_string},
     });
 }

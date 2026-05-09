@@ -147,6 +147,37 @@ static bool test_inList_with_int_value_returns_false()
     return true;
 }
 
+static bool test_inList_empty_list_always_fails()
+{
+    auto rule = ValidationRules::inList({});
+    auto v    = strVal("anything");
+    REQUIRE((*rule)(v) == false);
+    return true;
+}
+
+static bool test_betweenValues_min_equals_max()
+{
+    auto rule  = ValidationRules::betweenValues(5.0, 5.0);
+    auto exact = dblVal(5.0);
+    auto below = dblVal(4.999);
+    auto above = dblVal(5.001);
+    REQUIRE((*rule)(exact) == true);
+    REQUIRE((*rule)(below) == false);
+    REQUIRE((*rule)(above) == false);
+    return true;
+}
+
+static bool test_inList_single_element_passes_and_fails()
+{
+    auto rule = ValidationRules::inList({"only"});
+    REQUIRE(!rule->toString().empty());
+    auto match  = strVal("only");
+    auto nomatch = strVal("other");
+    REQUIRE((*rule)(match)   == true);
+    REQUIRE((*rule)(nomatch) == false);
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -168,5 +199,8 @@ int main()
         {"greaterThanZero: string value returns false",  test_greaterThanZero_with_string_returns_false},
         {"betweenValues: string value returns false",    test_betweenValues_with_string_returns_false},
         {"inList: int value returns false",              test_inList_with_int_value_returns_false},
+        {"inList: empty list always fails",              test_inList_empty_list_always_fails},
+        {"betweenValues: min == max boundary",           test_betweenValues_min_equals_max},
+        {"inList: single element passes and fails",      test_inList_single_element_passes_and_fails},
     });
 }

@@ -239,6 +239,73 @@ static bool test_logEvolutionResult_orphaned_key_result_is_nonempty()
     return true;
 }
 
+static bool test_isClean_returns_false_after_type_mismatch()
+{
+    auto schema = makeSchema();
+    RawConfigMap raw;
+    raw["Settings"]["count"]   = "not_a_number";
+    raw["Settings"]["ratio"]   = "1.0";
+    raw["Settings"]["verbose"] = "false";
+    auto result = evolveFileWithSchema(raw, schema);
+    REQUIRE(result.isClean() == false);
+    return true;
+}
+
+static bool test_isClean_returns_false_after_validation_failure()
+{
+    auto schema = makeSchema();
+    RawConfigMap raw;
+    raw["Settings"]["count"]   = "5";
+    raw["Settings"]["ratio"]   = "-1.0"; // fails greaterThanZero
+    raw["Settings"]["verbose"] = "false";
+    auto result = evolveFileWithSchema(raw, schema);
+    REQUIRE(result.isClean() == false);
+    return true;
+}
+
+static bool test_orphaned_item_fields_are_correct()
+{
+    auto schema = makeSchema();
+    RawConfigMap raw;
+    raw["Settings"]["count"]      = "5";
+    raw["Settings"]["ratio"]      = "1.0";
+    raw["Settings"]["verbose"]    = "false";
+    raw["Settings"]["legacy_key"] = "42";
+    auto result = evolveFileWithSchema(raw, schema, OrphanedConfigItemPolicy::CommentOut);
+
+    bool found = false;
+    for (const auto& sc : result.conflictingSections)
+        for (const auto& orphan : sc.removedEntries)
+            if (orphan.configItemName == "legacy_key")
+            {
+                REQUIRE_EQ(orphan.sectionName, std::string("Settings"));
+                REQUIRE_EQ(orphan.rawValue,    std::string("42"));
+                found = true;
+            }
+    REQUIRE(found == true);
+    return true;
+}
+
+static bool test_evolve_orphaned_policy_remove()
+{
+    auto schema = makeSchema();
+    RawConfigMap raw;
+    raw["Settings"]["count"]   = "5";
+    raw["Settings"]["ratio"]   = "1.0";
+    raw["Settings"]["verbose"] = "false";
+    raw["Settings"]["ghost"]   = "stale_value";
+    auto result = evolveFileWithSchema(raw, schema, OrphanedConfigItemPolicy::Remove);
+
+    REQUIRE(result.fileModified == true);
+    bool found = false;
+    for (const auto& sc : result.conflictingSections)
+        for (const auto& orphan : sc.removedEntries)
+            if (orphan.configItemName == "ghost")
+                found = true;
+    REQUIRE(found == true);
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -255,5 +322,9 @@ int main()
         {"logEvolutionResult mentions filename and added key",    test_logEvolutionResult_content_mentions_filename_and_added_key},
         {"logEvolutionResult: type mismatch output is non-empty",  test_logEvolutionResult_type_mismatch_result_is_nonempty},
         {"logEvolutionResult: orphaned key output is non-empty",   test_logEvolutionResult_orphaned_key_result_is_nonempty},
+        {"isClean: false after type mismatch",                     test_isClean_returns_false_after_type_mismatch},
+        {"isClean: false after validation failure",                 test_isClean_returns_false_after_validation_failure},
+        {"orphaned item: fields sectionName/configItemName/rawValue", test_orphaned_item_fields_are_correct},
+        {"OrphanedConfigItemPolicy::Remove records orphan",        test_evolve_orphaned_policy_remove},
     });
 }
