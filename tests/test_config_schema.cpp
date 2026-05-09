@@ -84,6 +84,48 @@ static bool test_validateConfig_empty_schema_is_valid()
     return true;
 }
 
+static bool test_buildSchemaLookup_contains_sections_and_keys()
+{
+    using Item = ConfigLib::ConfigItem;
+    std::vector<ConfigLib::ConfigSection> sections = {
+        {"Alpha", {Item::make<int>("x", 0, "x"), Item::make<int>("y", 0, "y")}},
+        {"Beta",  {Item::make<int>("z", 0, "z")}},
+    };
+    auto lookup = ConfigLib::Internal::buildSchemaLookup(sections);
+    REQUIRE(lookup.count("Alpha") > static_cast<std::size_t>(0));
+    REQUIRE(lookup.at("Alpha").count("x") > static_cast<std::size_t>(0));
+    REQUIRE(lookup.at("Alpha").count("y") > static_cast<std::size_t>(0));
+    REQUIRE(lookup.count("Beta") > static_cast<std::size_t>(0));
+    REQUIRE(lookup.at("Beta").count("z") > static_cast<std::size_t>(0));
+    REQUIRE(lookup.at("Beta").count("w") == static_cast<std::size_t>(0));
+    return true;
+}
+
+static bool test_buildSchemaItemLookup_returns_correct_pointers()
+{
+    using Item = ConfigLib::ConfigItem;
+    std::vector<ConfigLib::ConfigSection> sections = {
+        {"S", {Item::make<int>("count", 5, "item count")}},
+    };
+    auto lookup = ConfigLib::Internal::buildSchemaItemLookup(sections);
+    REQUIRE(lookup.count("S") > static_cast<std::size_t>(0));
+    REQUIRE(lookup.at("S").count("count") > static_cast<std::size_t>(0));
+    const ConfigLib::ConfigItem* ptr = lookup.at("S").at("count");
+    REQUIRE(ptr != nullptr);
+    REQUIRE_EQ(ptr->name, std::string("count"));
+    REQUIRE_EQ(ptr->defaultValue, std::string("5"));
+    return true;
+}
+
+static bool test_validateConfig_invalid_default_value_returns_false()
+{
+    ConfigLib::ConfigSection bad;
+    bad.name = "S";
+    bad.items.push_back(ConfigLib::ConfigItem("key", "int", "notanumber", "desc", nullptr));
+    REQUIRE(ConfigLib::validateConfig({bad}) == false);
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -94,5 +136,8 @@ int main()
         {"mergeDuplicateSections: distinct sections kept",   test_mergeDuplicateSections_different_sections_kept_separate},
         {"mergeDuplicateSections: duplicate key throws",     test_mergeDuplicateSections_duplicate_key_throws},
         {"mergeDuplicateSections: empty section name works", test_mergeDuplicateSections_empty_sections_name},
+        {"buildSchemaLookup: sections and keys present",     test_buildSchemaLookup_contains_sections_and_keys},
+        {"buildSchemaItemLookup: correct pointers",          test_buildSchemaItemLookup_returns_correct_pointers},
+        {"validateConfig: invalid default value returns false", test_validateConfig_invalid_default_value_returns_false},
     });
 }

@@ -124,6 +124,29 @@ static bool test_inList_toString()
     return true;
 }
 
+static bool test_greaterThanZero_with_string_returns_false()
+{
+    auto v = strVal("hello");
+    REQUIRE(ValidationRules::greaterThanZero(v) == false);
+    return true;
+}
+
+static bool test_betweenValues_with_string_returns_false()
+{
+    auto rule = ValidationRules::betweenValues(0.0, 10.0);
+    auto v    = strVal("five");
+    REQUIRE((*rule)(v) == false);
+    return true;
+}
+
+static bool test_inList_with_int_value_returns_false()
+{
+    auto rule = ValidationRules::inList({"red", "green"});
+    auto v    = intVal(1);
+    REQUIRE((*rule)(v) == false);
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -142,5 +165,8 @@ int main()
         {"inList: valid value passes",                test_inList_passes_valid},
         {"inList: invalid value fails",               test_inList_fails_invalid},
         {"inList: toString non-empty",                test_inList_toString},
+        {"greaterThanZero: string value returns false",  test_greaterThanZero_with_string_returns_false},
+        {"betweenValues: string value returns false",    test_betweenValues_with_string_returns_false},
+        {"inList: int value returns false",              test_inList_with_int_value_returns_false},
     });
 }

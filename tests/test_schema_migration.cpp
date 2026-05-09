@@ -263,26 +263,84 @@ static bool test_logMigrationResult_with_changes_writes_output()
     return true;
 }
 
+static bool test_rename_source_key_missing_is_no_op()
+{
+    RawConfigMap raw;
+    raw["S"]["other"] = "1";
+
+    auto m    = rename(1, 2, "S", "missing_key", "S", "new_key");
+    auto pair  = applyMigrations(raw, {m}, 1, 2);
+    REQUIRE(pair.second.ranAny() == false);
+    REQUIRE_EQ(pair.first.at("S").at("other"), std::string("1"));
+    REQUIRE(pair.first.at("S").count("new_key") == static_cast<std::size_t>(0));
+    return true;
+}
+
+static bool test_renameSection_source_section_missing_is_no_op()
+{
+    RawConfigMap raw;
+    raw["Other"]["key"] = "1";
+
+    auto m    = renameSection(1, 2, "Missing", "Dest");
+    auto pair  = applyMigrations(raw, {m}, 1, 2);
+    REQUIRE(pair.second.ranAny() == false);
+    REQUIRE(pair.first.count("Dest") == static_cast<std::size_t>(0));
+    REQUIRE_EQ(pair.first.at("Other").at("key"), std::string("1"));
+    return true;
+}
+
+static bool test_parseSchemaVersion_bad_version_string_returns_zero()
+{
+    const std::string path = "configlib_test_badversion.ini";
+    {
+        std::ofstream f(path);
+        f << "# __schema_version__ = notanumber\n[S]\nkey = val\n";
+    }
+    const uint32_t v = parseSchemaVersion(path);
+    (void)std::remove(path.c_str());
+    REQUIRE_EQ(v, invalidSchemaVersion);
+    return true;
+}
+
+static bool test_logMigrationResult_rename_transform_mentions_keys()
+{
+    RawConfigMap raw;
+    raw["A"]["k"] = "10";
+    auto m = rename(1, 2, "A", "k", "B", "j",
+                    [](const std::string& val) { return val + "x"; });
+    auto pair = applyMigrations(raw, {m}, 1, 2);
+    std::ostringstream out;
+    logMigrationResult(pair.second, "cfg.ini", out);
+    const std::string s = out.str();
+    REQUIRE(s.find("cfg.ini") != std::string::npos);
+    REQUIRE(s.find("A.k") != std::string::npos);
+    return true;
+}
+
 int main()
 {
     return runTests({
-        {"applyMigrations: none returns unchanged",           test_applyMigrations_none_returns_unchanged},
-        {"rename: moves value",                               test_rename_moves_value},
-        {"rename: with transform",                            test_rename_with_transform},
-        {"transformInPlace: applies in place",                test_transformInPlace_applies_in_place},
-        {"transformInPlace: null fn throws",                  test_transformInPlace_null_fn_throws},
-        {"transformKey: null fn throws",                      test_transformKey_null_fn_throws},
-        {"renameSection: moves all keys",                     test_renameSection_moves_all_keys},
-        {"renameSection: with renameKey child",               test_renameSection_with_renameKey_child},
-        {"renameSection: with transformKey child",            test_renameSection_with_transformKey_child},
-        {"renameKey: with transform",                         test_renameKey_with_transform},
-        {"migration out of range not applied",                test_migration_out_of_version_range_not_applied},
-        {"migration chain applied in order",                  test_migration_chain_applied_in_order},
-        {"parseSchemaVersion: reads version from file",       test_parseSchemaVersion_reads_from_file},
-        {"parseSchemaVersion: missing returns zero",          test_parseSchemaVersion_missing_returns_zero},
-        {"parseSchemaVersion: nonexistent file returns zero", test_parseSchemaVersion_nonexistent_file_returns_zero},
-        {"MigrationResult::ranAny",                           test_migrationResult_ranAny},
-        {"logMigrationResult: no migrations",                 test_logMigrationResult_no_migrations_writes_output},
-        {"logMigrationResult: with changes",                  test_logMigrationResult_with_changes_writes_output},
+        {"applyMigrations: none returns unchanged",              test_applyMigrations_none_returns_unchanged},
+        {"rename: moves value",                                  test_rename_moves_value},
+        {"rename: with transform",                               test_rename_with_transform},
+        {"rename: source key missing is no-op",                  test_rename_source_key_missing_is_no_op},
+        {"transformInPlace: applies in place",                   test_transformInPlace_applies_in_place},
+        {"transformInPlace: null fn throws",                     test_transformInPlace_null_fn_throws},
+        {"transformKey: null fn throws",                         test_transformKey_null_fn_throws},
+        {"renameSection: moves all keys",                        test_renameSection_moves_all_keys},
+        {"renameSection: with renameKey child",                  test_renameSection_with_renameKey_child},
+        {"renameSection: with transformKey child",               test_renameSection_with_transformKey_child},
+        {"renameSection: source section missing is no-op",       test_renameSection_source_section_missing_is_no_op},
+        {"renameKey: with transform",                            test_renameKey_with_transform},
+        {"migration out of range not applied",                   test_migration_out_of_version_range_not_applied},
+        {"migration chain applied in order",                     test_migration_chain_applied_in_order},
+        {"parseSchemaVersion: reads version from file",          test_parseSchemaVersion_reads_from_file},
+        {"parseSchemaVersion: missing returns zero",             test_parseSchemaVersion_missing_returns_zero},
+        {"parseSchemaVersion: nonexistent file returns zero",    test_parseSchemaVersion_nonexistent_file_returns_zero},
+        {"parseSchemaVersion: bad version string returns zero",  test_parseSchemaVersion_bad_version_string_returns_zero},
+        {"MigrationResult::ranAny",                              test_migrationResult_ranAny},
+        {"logMigrationResult: no migrations",                    test_logMigrationResult_no_migrations_writes_output},
+        {"logMigrationResult: with changes",                     test_logMigrationResult_with_changes_writes_output},
+        {"logMigrationResult: rename+transform mentions keys",   test_logMigrationResult_rename_transform_mentions_keys},
     });
 }

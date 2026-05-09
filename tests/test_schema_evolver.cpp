@@ -170,17 +170,90 @@ static bool test_logEvolutionResult_writes_to_stream()
     return true;
 }
 
+static bool test_orphaned_entire_section_is_recorded()
+{
+    auto schema = makeSchema();
+    RawConfigMap raw;
+    raw["Settings"]["count"]   = "5";
+    raw["Settings"]["ratio"]   = "1.0";
+    raw["Settings"]["verbose"] = "false";
+    raw["OldSection"]["legacy"] = "42";
+    auto result = evolveFileWithSchema(raw, schema, OrphanedConfigItemPolicy::CommentOut);
+
+    REQUIRE(result.fileModified == true);
+    bool foundOrphan = false;
+    for (const auto& sc : result.conflictingSections)
+        for (const auto& orphan : sc.removedEntries)
+            if (orphan.sectionName == "OldSection" && orphan.configItemName == "legacy")
+                foundOrphan = true;
+    REQUIRE(foundOrphan == true);
+    return true;
+}
+
+static bool test_logEvolutionResult_content_mentions_filename_and_added_key()
+{
+    auto schema = makeSchema();
+    RawConfigMap raw;
+    auto result = evolveFileWithSchema(raw, schema);
+
+    std::ostringstream out;
+    logEvolutionResult(result, "myconfig.ini", out);
+    const std::string s = out.str();
+    REQUIRE(s.find("myconfig.ini") != std::string::npos);
+    REQUIRE(s.find("count") != std::string::npos);
+    return true;
+}
+
+static bool test_logEvolutionResult_type_mismatch_result_is_nonempty()
+{
+    auto schema = makeSchema();
+    RawConfigMap raw;
+    raw["Settings"]["count"]   = "not_a_number";
+    raw["Settings"]["ratio"]   = "1.0";
+    raw["Settings"]["verbose"] = "false";
+    auto result = evolveFileWithSchema(raw, schema);
+
+    REQUIRE(result.numberOfConflicts() > static_cast<std::size_t>(0));
+
+    std::ostringstream out;
+    logEvolutionResult(result, "cfg.ini", out);
+    REQUIRE(!out.str().empty());
+    return true;
+}
+
+static bool test_logEvolutionResult_orphaned_key_result_is_nonempty()
+{
+    auto schema = makeSchema();
+    RawConfigMap raw;
+    raw["Settings"]["count"]     = "5";
+    raw["Settings"]["ratio"]     = "1.0";
+    raw["Settings"]["verbose"]   = "false";
+    raw["Settings"]["extra_key"] = "orphan";
+    auto result = evolveFileWithSchema(raw, schema, OrphanedConfigItemPolicy::CommentOut);
+
+    REQUIRE(result.fileModified == true);
+
+    std::ostringstream out;
+    logEvolutionResult(result, "cfg.ini", out);
+    REQUIRE(!out.str().empty());
+    return true;
+}
+
 int main()
 {
     return runTests({
-        {"empty rawConfig: all items added",             test_empty_rawConfig_marks_all_as_added},
-        {"matching rawConfig: isClean",                  test_matching_rawConfig_is_clean},
-        {"type mismatch sets TypeMismatch conflict",     test_type_mismatch_sets_conflict},
-        {"validation failure sets conflict",             test_validation_failure_sets_conflict},
-        {"orphaned key is recorded",                     test_orphaned_key_is_recorded},
-        {"orphaned key + RuntimeError throws",           test_orphaned_key_with_RuntimeError_throws},
-        {"volatile key in file marks fileModified",      test_volatile_key_in_file_marks_modified},
-        {"numberOfConflicts counts correctly",           test_numberOfConflicts_counts_correctly},
-        {"logEvolutionResult writes to stream",          test_logEvolutionResult_writes_to_stream},
+        {"empty rawConfig: all items added",                      test_empty_rawConfig_marks_all_as_added},
+        {"matching rawConfig: isClean",                           test_matching_rawConfig_is_clean},
+        {"type mismatch sets TypeMismatch conflict",              test_type_mismatch_sets_conflict},
+        {"validation failure sets conflict",                      test_validation_failure_sets_conflict},
+        {"orphaned key is recorded",                              test_orphaned_key_is_recorded},
+        {"orphaned key + RuntimeError throws",                    test_orphaned_key_with_RuntimeError_throws},
+        {"orphaned entire section is recorded",                   test_orphaned_entire_section_is_recorded},
+        {"volatile key in file marks fileModified",               test_volatile_key_in_file_marks_modified},
+        {"numberOfConflicts counts correctly",                    test_numberOfConflicts_counts_correctly},
+        {"logEvolutionResult writes to stream",                   test_logEvolutionResult_writes_to_stream},
+        {"logEvolutionResult mentions filename and added key",    test_logEvolutionResult_content_mentions_filename_and_added_key},
+        {"logEvolutionResult: type mismatch output is non-empty",  test_logEvolutionResult_type_mismatch_result_is_nonempty},
+        {"logEvolutionResult: orphaned key output is non-empty",   test_logEvolutionResult_orphaned_key_result_is_nonempty},
     });
 }
