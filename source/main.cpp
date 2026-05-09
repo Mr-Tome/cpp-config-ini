@@ -34,18 +34,18 @@ public:
             {
                 "TBM",
                 {
-                    {"kor", "double", "500.0", "TBM kor value", &ValidationRules::greaterThanZero}
+                    ConfigLib::ConfigItem::make<double>("kor", 500.0, "TBM kor value", &ValidationRules::greaterThanZero)
                 }
             },
             {
                 "General",
                 {
-                    {"FW", "double", "-999.0", "Fixed Wing value", &between0And100},
-                    {"RW", "double", "20.0", "Rotary Wing value", &between0And100},
-                    {"CM", "double", "1010.0", "Cruise Missile value", &between0And100},
-                    {"Misc", "vector<double>", "1.0,2.0,3.0", "Misc item just for proof of principle", nullptr},
-                    {"string_test","string","ALL","string test",nullptr},
-                    {"std_string_test","string","wew","std::string test",nullptr}
+                    ConfigLib::ConfigItem::make<double>("FW", -999.0, "Fixed Wing value", &between0And100),
+                    ConfigLib::ConfigItem::make<double>("RW", 20.0, "Rotary Wing value", &between0And100),
+                    ConfigLib::ConfigItem::make<double>("CM", 1010.0, "Cruise Missile value", &between0And100),
+                    ConfigLib::ConfigItem::make<std::vector<double>>("Misc", std::vector<double>{1.0, 2.0, 3.0}, "Misc item just for proof of principle", nullptr),
+                    ConfigLib::ConfigItem::make<std::string>("string_test", std::string("ALL"), "string test", nullptr),
+                    ConfigLib::ConfigItem::make<std::string>("std_string_test", std::string("wew"), "std::string test", nullptr)
                 }
             }
         };
@@ -165,29 +165,29 @@ struct ColorConfigIniClass : public ConfigLib::ConfigReader<ColorConfigIniClass,
     std::vector<ConfigLib::ConfigSection> getConfigSections() const
     {
 		return {
-			{ 
+			{
 				"FirstColor",
 				{
-					{"red", Color(255,0,0), "this is the color red", nullptr},
-					{"green", Color(0,255,0), "this is the color green", nullptr},
-					{"blue", "Color", "0,0,255", "this is the color blue.", nullptr},
-					{"sample_bool", "bool", "true", "this is true.", nullptr}
+					ConfigLib::ConfigItem::make<Color>("red", Color(255,0,0), "this is the color red", nullptr),
+					ConfigLib::ConfigItem::make<Color>("green", Color(0,255,0), "this is the color green", nullptr),
+					ConfigLib::ConfigItem::make<Color>("blue", Color(0,0,255), "this is the color blue.", nullptr),
+					ConfigLib::ConfigItem::make<bool>("sample_bool", true, "this is true.", nullptr)
 				}
 			},
-			{ 
+			{
 				"secondColor_group",
 				{
-					{"black", "Color", "0,0,0", "this is the color red", nullptr},
-					{"white", "Color", "255,255,255", "this is the color green", nullptr},
-					{"gray", "Color", "128,128,128", "this is the color blue.", nullptr},
-					{"sample_vector_int", "vector<int>", "0,1,2,2,3,4,5", "this is an int vector.", nullptr},
-					{"sample_vector_string", "vector<string>", "0,1asdf,2,2,3213f,4,5", "this is a string vector.", nullptr}
+					ConfigLib::ConfigItem::make<Color>("black", Color(0,0,0), "this is the color red", nullptr),
+					ConfigLib::ConfigItem::make<Color>("white", Color(255,255,255), "this is the color green", nullptr),
+					ConfigLib::ConfigItem::make<Color>("gray", Color(128,128,128), "this is the color blue.", nullptr),
+					ConfigLib::ConfigItem::make<std::vector<int>>("sample_vector_int", std::vector<int>{0,1,2,2,3,4,5}, "this is an int vector.", nullptr),
+					ConfigLib::ConfigItem::make<std::vector<std::string>>("sample_vector_string", std::vector<std::string>{"0","1asdf","2","2","3213f","4","5"}, "this is a string vector.", nullptr)
 				}
 			}
 		};
 	}
 };
- 
+
 void test_colors(int argc, char* argv[])
 {
 	ColorConfigIniClass my_color_config(argc, argv);

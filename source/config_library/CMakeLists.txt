@@ -1,4 +1,6 @@
 add_library(source_directory_lib STATIC
+	common/config_logger.hpp
+	common/config_logger.cpp
 	common/config_schema.cpp
 	common/config_schema.hpp
 	common/config_value.hpp

@@ -94,23 +94,23 @@ public:
         return {
             {
                 "FirstColor",
-				{
-					{"red", Color(255,0,0), "this is the color red", nullptr},
-					{"green", Color(0,255,0), "this is the color green", nullptr},
-					{"blue", "Color", "0,0,255", "this is the color blue.", nullptr},
-					{"sample_bool", "bool", "true", "this is true.", nullptr},
-					{"sample_bool2", "bool", "true", "this is true.", nullptr}
-				}
+                {
+                    ConfigLib::ConfigItem::make<Color>("red", Color(255,0,0), "this is the color red", nullptr),
+                    ConfigLib::ConfigItem::make<Color>("green", Color(0,255,0), "this is the color green", nullptr),
+                    ConfigLib::ConfigItem::make<Color>("blue", Color(0,0,255), "this is the color blue.", nullptr),
+                    ConfigLib::ConfigItem::make<bool>("sample_bool", true, "this is true.", nullptr),
+                    ConfigLib::ConfigItem::make<bool>("sample_bool2", true, "this is true.", nullptr)
+                }
             },
             {
                 "secondColor_group",
-				{
-					{"black", "Color", "0,0,0", "this is the color black", nullptr},
-					{"white", "Color", "255,255,255", "this is the color white", nullptr},
-					{"gray", "Color", "128,128,128", "this is the color gray.", nullptr},
-					{"sample_vector_int", "vector<int>", "0,1,2,2,3,4,5", "this is an int vector.", nullptr},
-					{"sample_vector_string", "vector<string>", "0,1asdf,2,2,3213f,4,5", "this is a string vector.", nullptr}
-				}
+                {
+                    ConfigLib::ConfigItem::make<Color>("black", Color(0,0,0), "this is the color black", nullptr),
+                    ConfigLib::ConfigItem::make<Color>("white", Color(255,255,255), "this is the color white", nullptr),
+                    ConfigLib::ConfigItem::make<Color>("gray", Color(128,128,128), "this is the color gray.", nullptr),
+                    ConfigLib::ConfigItem::make<std::vector<int>>("sample_vector_int", std::vector<int>{0,1,2,2,3,4,5}, "this is an int vector.", nullptr),
+                    ConfigLib::ConfigItem::make<std::vector<std::string>>("sample_vector_string", std::vector<std::string>{"0","1asdf","2","2","3213f","4","5"}, "this is a string vector.", nullptr)
+                }
             }
         };
     }

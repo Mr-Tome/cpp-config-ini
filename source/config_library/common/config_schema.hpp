@@ -23,7 +23,7 @@ private:
 	ConfigItem(
 		ForcePrivateConstructorToBeCalled,
 		const std::string& itemName,
-		const std::string& itemType, 
+		const std::string& itemType,
 		const std::string& itemDefault,
 		const std::string& itemDescription,
 		const ValidationRules::Rule* rule,
@@ -34,17 +34,8 @@ private:
 		description(itemDescription),
 		validationRule(rule),
 		persistence(p){}
-		
-public:
-   const std::string name;
-   const std::string type;
-   const std::string defaultValue;
-   const std::string description;
-   const ValidationRules::Rule* validationRule;
-   const Persistence persistence;
-   
-   //replacing the default stringly typed {} initializer
-   ConfigItem(  const std::string& itemName,
+
+	ConfigItem(  const std::string& itemName,
 				const std::string& itemType,
 				const std::string& itemDefaultValue,
 				const std::string& itemDescription,
@@ -58,7 +49,15 @@ public:
 		itemDescription,
 		rule,
 		p){}
-   
+		
+public:
+   const std::string name;
+   const std::string type;
+   const std::string defaultValue;
+   const std::string description;
+   const ValidationRules::Rule* validationRule;
+   const Persistence persistence;
+
    template<typename T, typename U>
    static ConfigItem make(const std::string& itemName,
                           U&& defaultVal,

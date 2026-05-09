@@ -5,8 +5,8 @@
 #include <memory>
 #include <vector>
 #include <sstream>
-#include <iostream>
-#include "../common/config_value.hpp" // TODO (IHT 20260223): I think this is only needed for the ConfigSectionStore...seems like an odd place for a store..
+#include "../common/config_value.hpp"
+#include "../common/config_logger.hpp" // TODO (IHT 20260223): I think this is only needed for the ConfigSectionStore...seems like an odd place for a store..
 #include "../common/config_schema.hpp"
 
 namespace ConfigLib
@@ -21,15 +21,14 @@ public:
 	template<typename T>
 	[[nodiscard]] T getValue(const std::string& section, const std::string& key) const
 	{
-		std::cout << "Attempting to get value for section: " << section 
-				  << ", key: " << key << std::endl;
+		Internal::log("Attempting to get value for section: " + section + ", key: " + key);
 		auto sect_it = sections.find(section);
-		if (sect_it != sections.end()) 
+		if (sect_it != sections.end())
 		{
-			std::cout << "Section found" << std::endl;
+			Internal::log("Section found");
 			return sect_it->second.getValue<T>(key);
 		}
-		std::cout << "Section not found" << std::endl;
+		Internal::log("Section not found");
 		throw std::runtime_error("Section not found: " + section);
 	}
 

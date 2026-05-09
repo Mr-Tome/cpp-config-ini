@@ -3,7 +3,7 @@
 #include <string>
 #include <memory>
 #include <unordered_map>
-#include <iostream>
+#include "config_logger.hpp"
 #include "type_parser.hpp"
 #include "validation_rules.hpp"
 
@@ -84,8 +84,8 @@ public:
 	template<typename T>
 	void setValue(const std::string& key, const T& value) 
 	{
-		std::cout << "ConfigSectionStore::setValue called for key: " << key 
-				  << " with type: " << typeid(T).name() << std::endl;
+		Internal::log(std::string("ConfigSectionStore::setValue called for key: ") + key
+				  + " with type: " + typeid(T).name());
 		try 
 		{
 			auto newValue = std::make_shared<TypedConfigValue<T>>(value);
@@ -93,14 +93,13 @@ public:
 			auto rule_it = validationRules.find(key);
 			if (rule_it != validationRules.end() && rule_it->second) {
 				if (!(*rule_it->second)(*newValue)) {
-					std::cerr << "Validation failed for key: " << key 
-							  << ". Using default value." << std::endl;
+					Internal::log("Validation failed for key: " + key + ". Using default value.");
 					throw std::runtime_error("Validation failed for key: " + key);
 				}
 			}
 			
 			values[key] = newValue;
-			std::cout << "Value set for key: " << key << std::endl;
+			Internal::log("Value set for key: " + key);
 		} 
 		catch (const std::exception& e) 
 		{
@@ -117,29 +116,29 @@ public:
     template<typename T>
 	T getValue(const std::string& key) const 
 	{
-		std::cout << "ConfigSectionStore::getValue called for key: " << key 
-				  << " with expected type: " << typeid(T).name() << std::endl;
+		Internal::log(std::string("ConfigSectionStore::getValue called for key: ") + key
+				  + " with expected type: " + typeid(T).name());
 		
 		auto it = values.find(key);
 		if (it != values.end()) 
 		{
-			std::cout << "Key found in ConfigSectionStore" << std::endl;
+			Internal::log("Key found in ConfigSectionStore");
 			auto typed_value = std::dynamic_pointer_cast<TypedConfigValue<T>>(it->second);
 			if (typed_value) 
 			{
-				std::cout << "Successfully cast to TypedConfigValue<" 
-						  << typeid(T).name() << ">" << std::endl;
+				Internal::log(std::string("Successfully cast to TypedConfigValue<")
+						  + typeid(T).name() + ">");
 				return typed_value->getValue();
 			} 
 			else 
 			{
-				std::cout << "Failed to cast to TypedConfigValue<" 
-						  << typeid(T).name() << ">" << std::endl;
+				Internal::log(std::string("Failed to cast to TypedConfigValue<")
+						  + typeid(T).name() + ">");
 			}
 		} 
 		else 
 		{
-			std::cout << "Key not found in ConfigSectionStore" << std::endl;
+			Internal::log("Key not found in ConfigSectionStore");
 		}
 		throw std::runtime_error("Key not found or type mismatch: " + key);
 	}

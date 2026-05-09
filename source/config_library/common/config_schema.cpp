@@ -1,8 +1,8 @@
 #include <unordered_map>
-#include <iostream>
 #include <algorithm>
 #include "config_schema.hpp"
 #include "config_value.hpp"
+#include "config_logger.hpp"
 
 
 namespace ConfigLib 
@@ -24,22 +24,12 @@ bool validateConfig(const std::vector<ConfigSection>& sections)
 	{
 		for (const auto& item : section.items) 
 		{
-			// Check if type is registered
-			if (!registry.hasType(item.type)) 
+				// validate default value
+			if (!registry.validateValue(item.type, item.defaultValue))
 			{
-				std::cerr << "ERROR: Type '" << item.type << "' for " 
-						  << section.name << "." << item.name 
-						  << " is not registered!" << std::endl;
-				std::cerr << "       " << registry.getRegisteredTypesString() << std::endl;
-				allValid = false;
-			}
-			
-			// validate default value
-			if (!registry.validateValue(item.type, item.defaultValue)) 
-			{
-				std::cerr << "WARNING: Default value '" << item.defaultValue 
-						  << "' is not valid for type '" << item.type 
-						  << "' in " << section.name << "." << item.name << std::endl;
+				Internal::log("WARNING: Default value '" + item.defaultValue
+						  + "' is not valid for type '" + item.type
+						  + "' in " + section.name + "." + item.name);
 				allValid = false;
 			}
 		}

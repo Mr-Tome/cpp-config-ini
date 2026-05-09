@@ -54,16 +54,6 @@ static bool test_make_volatile_persistence()
     return true;
 }
 
-static bool test_string_constructor()
-{
-    ConfigLib::ConfigItem item(
-        "verbosity", "int", "1", "verbosity level", nullptr);
-    REQUIRE_EQ(item.name,         std::string("verbosity"));
-    REQUIRE_EQ(item.type,         std::string("int"));
-    REQUIRE_EQ(item.defaultValue, std::string("1"));
-    return true;
-}
-
 static bool test_config_section_has_name_and_items()
 {
     ConfigLib::ConfigSection section;
@@ -91,7 +81,6 @@ int main()
         {"ConfigItem::make<string>",              test_make_string_sets_type_and_default},
         {"ConfigItem::make with validation rule", test_make_with_validation_rule},
         {"ConfigItem::make Volatile persistence", test_make_volatile_persistence},
-        {"ConfigItem string constructor",         test_string_constructor},
         {"ConfigSection has name and items",      test_config_section_has_name_and_items},
         {"Persistence enum values are distinct",  test_persistence_enum_values_distinct},
     });

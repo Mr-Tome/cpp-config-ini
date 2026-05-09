@@ -19,15 +19,6 @@ static bool test_validateConfig_valid_schema()
     return true;
 }
 
-static bool test_validateConfig_unknown_type_returns_false()
-{
-    ConfigLib::ConfigSection bad;
-    bad.name = "S";
-    bad.items.push_back(ConfigLib::ConfigItem("key", "UnknownType", "0", "desc", nullptr));
-    REQUIRE(ConfigLib::validateConfig({bad}) == false);
-    return true;
-}
-
 static bool test_mergeDuplicateSections_combines_items()
 {
     using Item = ConfigLib::ConfigItem;
@@ -117,15 +108,6 @@ static bool test_buildSchemaItemLookup_returns_correct_pointers()
     return true;
 }
 
-static bool test_validateConfig_invalid_default_value_returns_false()
-{
-    ConfigLib::ConfigSection bad;
-    bad.name = "S";
-    bad.items.push_back(ConfigLib::ConfigItem("key", "int", "notanumber", "desc", nullptr));
-    REQUIRE(ConfigLib::validateConfig({bad}) == false);
-    return true;
-}
-
 static bool test_mergeDuplicateSections_three_same_name()
 {
     using Item = ConfigLib::ConfigItem;
@@ -141,25 +123,10 @@ static bool test_mergeDuplicateSections_three_same_name()
     return true;
 }
 
-static bool test_validateConfig_multiple_errors_returns_false()
-{
-    using Item = ConfigLib::ConfigItem;
-    std::vector<ConfigLib::ConfigSection> sections = {{
-        "S",
-        {
-            Item("key1", "NoSuchType",  "0",           "desc", nullptr),
-            Item("key2", "int",         "notanumber",  "desc", nullptr),
-        }
-    }};
-    REQUIRE(ConfigLib::validateConfig(sections) == false);
-    return true;
-}
-
 int main()
 {
     return runTests({
         {"validateConfig: valid schema returns true",        test_validateConfig_valid_schema},
-        {"validateConfig: unknown type returns false",       test_validateConfig_unknown_type_returns_false},
         {"validateConfig: empty schema is valid",            test_validateConfig_empty_schema_is_valid},
         {"mergeDuplicateSections: combines items",           test_mergeDuplicateSections_combines_items},
         {"mergeDuplicateSections: distinct sections kept",   test_mergeDuplicateSections_different_sections_kept_separate},
@@ -167,8 +134,6 @@ int main()
         {"mergeDuplicateSections: empty section name works", test_mergeDuplicateSections_empty_sections_name},
         {"buildSchemaLookup: sections and keys present",     test_buildSchemaLookup_contains_sections_and_keys},
         {"buildSchemaItemLookup: correct pointers",          test_buildSchemaItemLookup_returns_correct_pointers},
-        {"validateConfig: invalid default value returns false", test_validateConfig_invalid_default_value_returns_false},
-        {"mergeDuplicateSections: three same-name sections",    test_mergeDuplicateSections_three_same_name},
-        {"validateConfig: multiple error types returns false",   test_validateConfig_multiple_errors_returns_false},
+        {"mergeDuplicateSections: three same-name sections", test_mergeDuplicateSections_three_same_name},
     });
 }
