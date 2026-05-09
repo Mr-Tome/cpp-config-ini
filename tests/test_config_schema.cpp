@@ -141,6 +141,20 @@ static bool test_mergeDuplicateSections_three_same_name()
     return true;
 }
 
+static bool test_validateConfig_multiple_errors_returns_false()
+{
+    using Item = ConfigLib::ConfigItem;
+    std::vector<ConfigLib::ConfigSection> sections = {{
+        "S",
+        {
+            Item("key1", "NoSuchType",  "0",           "desc", nullptr),
+            Item("key2", "int",         "notanumber",  "desc", nullptr),
+        }
+    }};
+    REQUIRE(ConfigLib::validateConfig(sections) == false);
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -155,5 +169,6 @@ int main()
         {"buildSchemaItemLookup: correct pointers",          test_buildSchemaItemLookup_returns_correct_pointers},
         {"validateConfig: invalid default value returns false", test_validateConfig_invalid_default_value_returns_false},
         {"mergeDuplicateSections: three same-name sections",    test_mergeDuplicateSections_three_same_name},
+        {"validateConfig: multiple error types returns false",   test_validateConfig_multiple_errors_returns_false},
     });
 }

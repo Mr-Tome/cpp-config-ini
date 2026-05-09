@@ -459,6 +459,173 @@ static bool test_inicli_print_shows_ini_loaded_value()
     return true;
 }
 
+// ─── Empty / malformed flat key ───────────────────────────────────────────────
+
+static bool test_cli_empty_flat_key_throws()
+{
+    std::vector<std::string> args = {"prog", "--=value"};
+    auto argv = makeArgv(args);
+    SuppressStdout s;
+    REQUIRE_THROWS(CLIOnlyConfig(static_cast<int>(args.size()), argv.data()));
+    return true;
+}
+
+static bool test_cli_key_with_extra_dot_throws()
+{
+    std::vector<std::string> args = {"prog", "--settings.threads.extra=5"};
+    auto argv = makeArgv(args);
+    SuppressStdout s;
+    REQUIRE_THROWS(CLIOnlyConfig(static_cast<int>(args.size()), argv.data()));
+    return true;
+}
+
+// ─── Two volatile fields ──────────────────────────────────────────────────────
+
+class TwoVolatileConfig : public ConfigLib::ConfigReader<TwoVolatileConfig, ConfigLib::CLI>
+{
+    using Base = ConfigLib::ConfigReader<TwoVolatileConfig, ConfigLib::CLI>;
+public:
+    using Base::Base;
+    std::vector<ConfigLib::ConfigSection> getConfigSections() const
+    {
+        using Item = ConfigLib::ConfigItem;
+        return {{ "run", {
+            Item::make<std::string>("id",  std::string(""), "run id",  nullptr, ConfigLib::Persistence::Volatile),
+            Item::make<std::string>("tag", std::string(""), "run tag", nullptr, ConfigLib::Persistence::Volatile),
+        }}};
+    }
+};
+
+static bool test_cli_two_volatile_fields_both_missing_throws()
+{
+    SuppressStdout s;
+    REQUIRE_THROWS(TwoVolatileConfig());
+    return true;
+}
+
+static bool test_cli_two_volatile_fields_one_missing_throws()
+{
+    std::vector<std::string> args = {"prog", "--run.id=myid"};
+    auto argv = makeArgv(args);
+    SuppressStdout s;
+    REQUIRE_THROWS(TwoVolatileConfig(static_cast<int>(args.size()), argv.data()));
+    return true;
+}
+
+static bool test_cli_two_volatile_fields_both_provided_succeeds()
+{
+    std::vector<std::string> args = {"prog", "--run.id=myid", "--run.tag=v1"};
+    auto argv = makeArgv(args);
+    SuppressStdout s;
+    TwoVolatileConfig cfg(static_cast<int>(args.size()), argv.data());
+    REQUIRE_EQ(cfg.getValue<std::string>("run", "id"),  std::string("myid"));
+    REQUIRE_EQ(cfg.getValue<std::string>("run", "tag"), std::string("v1"));
+    return true;
+}
+
+// ─── INI+CLI diff with file value ────────────────────────────────────────────
+
+static bool test_inicli_diff_shows_file_value_differs_from_default()
+{
+    TempFile guard(kINICLIPath);
+    {
+        SuppressStdout s;
+        INICLIConfig base;
+        base.setValue<int>("app", "level", 5);
+        base.saveConfig();
+    }
+    {
+        std::vector<std::string> args = {"prog", "--diff"};
+        auto argv = makeArgv(args);
+        std::ostringstream captured;
+        std::streambuf* oldBuf = std::cout.rdbuf(captured.rdbuf());
+        INICLIConfig cfg(static_cast<int>(args.size()), argv.data());
+        std::cout.rdbuf(oldBuf);
+
+        const std::string out = captured.str();
+        REQUIRE(out.find("level") != std::string::npos);
+        REQUIRE(out.find("5")     != std::string::npos);
+    }
+    return true;
+}
+
+// ─── Export with volatile field ───────────────────────────────────────────────
+
+static const std::string kVolatileExportBase = "configlib_test_volexport_base.ini";
+static const std::string kVolatileExportDest = "configlib_test_volexport_dest.ini";
+
+class VolatileExportConfig : public ConfigLib::ConfigReader<VolatileExportConfig, ConfigLib::INI, ConfigLib::CLI>
+{
+    using Base = ConfigLib::ConfigReader<VolatileExportConfig, ConfigLib::INI, ConfigLib::CLI>;
+public:
+    using Base::Base;
+    std::vector<ConfigLib::ConfigSection> getConfigSections() const
+    {
+        using Item = ConfigLib::ConfigItem;
+        return {{ "cfg", {
+            Item::make<int>("level",  1,                   "log level"),
+            Item::make<std::string>("run_id", std::string(""), "run identifier",
+                nullptr, ConfigLib::Persistence::Volatile),
+        }}};
+    }
+    std::string getConfigFilePath() const { return kVolatileExportBase; }
+};
+
+static bool test_inicli_export_volatile_field_appears_as_comment()
+{
+    TempFile guard1(kVolatileExportBase);
+    TempFile guard2(kVolatileExportDest);
+    {
+        std::string exportArg = "--export=" + kVolatileExportDest;
+        std::vector<std::string> args = {"prog", "--cfg.run_id=test-run", exportArg};
+        auto argv = makeArgv(args);
+        SuppressStdout s;
+        VolatileExportConfig cfg(static_cast<int>(args.size()), argv.data());
+        (void)cfg;
+    }
+    std::ifstream f(kVolatileExportDest);
+    std::string content((std::istreambuf_iterator<char>(f)),
+                         std::istreambuf_iterator<char>());
+    REQUIRE(content.find("run_id = test-run") == std::string::npos);
+    REQUIRE(content.find("<not stored>")       != std::string::npos);
+    return true;
+}
+
+// ─── Reserved key name as field name ─────────────────────────────────────────
+
+class ReservedKeyConfig : public ConfigLib::ConfigReader<ReservedKeyConfig, ConfigLib::CLI>
+{
+    using Base = ConfigLib::ConfigReader<ReservedKeyConfig, ConfigLib::CLI>;
+public:
+    using Base::Base;
+    std::vector<ConfigLib::ConfigSection> getConfigSections() const
+    {
+        return {
+            { "S", { ConfigLib::ConfigItem::make<std::string>("print", std::string("off"), "print mode in S") } },
+            { "T", { ConfigLib::ConfigItem::make<std::string>("print", std::string("off"), "print mode in T") } },
+        };
+    }
+};
+
+static bool test_cli_reserved_key_name_flat_throws()
+{
+    std::vector<std::string> args = {"prog", "--print=yes"};
+    auto argv = makeArgv(args);
+    SuppressStdout s;
+    REQUIRE_THROWS(ReservedKeyConfig(static_cast<int>(args.size()), argv.data()));
+    return true;
+}
+
+static bool test_cli_reserved_key_name_qualified_works()
+{
+    std::vector<std::string> args = {"prog", "--S.print=yes"};
+    auto argv = makeArgv(args);
+    SuppressStdout s;
+    ReservedKeyConfig cfg(static_cast<int>(args.size()), argv.data());
+    REQUIRE_EQ(cfg.getValue<std::string>("S", "print"), std::string("yes"));
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -490,5 +657,14 @@ int main()
         {"INI+CLI: --export= writes file",                      test_inicli_export_flag_writes_file},
         {"INI+CLI: --export= with empty path throws",           test_cli_export_empty_path_throws},
         {"INI+CLI: --print shows INI-loaded value",             test_inicli_print_shows_ini_loaded_value},
+        {"CLI: empty flat key throws",                          test_cli_empty_flat_key_throws},
+        {"CLI: key with extra dot throws",                      test_cli_key_with_extra_dot_throws},
+        {"CLI: two volatile fields both missing throws",        test_cli_two_volatile_fields_both_missing_throws},
+        {"CLI: two volatile fields one missing throws",         test_cli_two_volatile_fields_one_missing_throws},
+        {"CLI: two volatile fields both provided succeeds",     test_cli_two_volatile_fields_both_provided_succeeds},
+        {"INI+CLI: diff shows file value differs from default", test_inicli_diff_shows_file_value_differs_from_default},
+        {"INI+CLI: export volatile field appears as comment",   test_inicli_export_volatile_field_appears_as_comment},
+        {"CLI: reserved key name flat throws",                  test_cli_reserved_key_name_flat_throws},
+        {"CLI: reserved key name qualified works",              test_cli_reserved_key_name_qualified_works},
     });
 }

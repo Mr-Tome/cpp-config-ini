@@ -360,6 +360,50 @@ static bool test_migration_change_all_fields_are_correct()
     return true;
 }
 
+static bool test_migrationResult_fileVersion_and_schemaVersion_are_set()
+{
+    RawConfigMap raw;
+    auto pair = applyMigrations(raw, {}, 3, 7);
+    REQUIRE_EQ(pair.second.fileVersion,   static_cast<uint32_t>(3));
+    REQUIRE_EQ(pair.second.schemaVersion, static_cast<uint32_t>(7));
+    return true;
+}
+
+static bool test_renameSection_destination_already_has_keys()
+{
+    RawConfigMap raw;
+    raw["Old"]["a"] = "1";
+    raw["New"]["b"] = "2"; // destination already has a key
+
+    auto m    = renameSection(1, 2, "Old", "New");
+    auto pair  = applyMigrations(raw, {m}, 1, 2);
+    const RawConfigMap& result = pair.first;
+
+    REQUIRE(result.count("Old") == static_cast<std::size_t>(0));
+    REQUIRE_EQ(result.at("New").at("a"), std::string("1")); // moved from Old
+    REQUIRE_EQ(result.at("New").at("b"), std::string("2")); // pre-existing in New
+    return true;
+}
+
+static bool test_multiple_renameSection_migrations()
+{
+    RawConfigMap raw;
+    raw["A"]["x"] = "10";
+    raw["B"]["y"] = "20";
+
+    auto m1   = renameSection(1, 2, "A", "C");
+    auto m2   = renameSection(1, 2, "B", "D");
+    auto pair  = applyMigrations(raw, {m1, m2}, 1, 2);
+    const RawConfigMap& result = pair.first;
+
+    REQUIRE(result.count("A") == static_cast<std::size_t>(0));
+    REQUIRE(result.count("B") == static_cast<std::size_t>(0));
+    REQUIRE_EQ(result.at("C").at("x"), std::string("10"));
+    REQUIRE_EQ(result.at("D").at("y"), std::string("20"));
+    REQUIRE_EQ(static_cast<int>(pair.second.changes.size()), 2);
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -388,5 +432,8 @@ int main()
         {"migration: same fromVersion==toVersion is applied",     test_migration_same_version_range_is_applied},
         {"transformInPlace: identity leaves value unchanged",     test_transformInPlace_identity_value_unchanged},
         {"MigrationChange: all six fields are correct",           test_migration_change_all_fields_are_correct},
+        {"MigrationResult: fileVersion and schemaVersion are set", test_migrationResult_fileVersion_and_schemaVersion_are_set},
+        {"renameSection: destination already has keys",            test_renameSection_destination_already_has_keys},
+        {"multiple renameSection migrations in one call",          test_multiple_renameSection_migrations},
     });
 }

@@ -697,6 +697,54 @@ static bool test_ini_value_all_whitespace_gives_empty_string()
     return true;
 }
 
+// ─── Schema version higher in file than in schema (downgrade) ────────────────
+
+static const std::string kDowngradePath = "configlib_test_downgrade.ini";
+
+class DowngradeConfig : public ConfigLib::ConfigReader<DowngradeConfig, ConfigLib::INI>
+{
+public:
+    std::vector<ConfigLib::ConfigSection> getConfigSections() const
+    {
+        return {{ "S", { ConfigLib::ConfigItem::make<int>("val", 0, "a value") } }};
+    }
+    std::string getConfigFilePath() const { return kDowngradePath; }
+    uint32_t getSchemaVersion() const { return 2; }
+};
+
+static bool test_ini_file_version_higher_than_schema_loads_ok()
+{
+    TempFile guard(kDowngradePath);
+    {
+        std::ofstream f(kDowngradePath);
+        f << "# __schema_version__ = 5\n\n"  // file ahead of schema
+          << "[S]\n"
+          << "val = 42 # type: int, description: a value\n\n";
+    }
+    SuppressStdout s;
+    DowngradeConfig cfg;
+    REQUIRE_EQ(cfg.getValue<int>("S", "val"), 42); // value preserved, no migration applied
+    return true;
+}
+
+static bool test_ini_saved_file_has_type_annotation()
+{
+    TempFile guard(kBasicPath);
+    {
+        SuppressStdout s;
+        BasicConfig cfg;
+        cfg.setValue<int>("test", "count", 77);
+        cfg.saveConfig();
+    }
+    std::ifstream f(kBasicPath);
+    std::string content((std::istreambuf_iterator<char>(f)),
+                         std::istreambuf_iterator<char>());
+    REQUIRE(content.find("count = 77")              != std::string::npos);
+    REQUIRE(content.find("# type: int")             != std::string::npos);
+    REQUIRE(content.find("description: item count") != std::string::npos);
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -732,5 +780,7 @@ int main()
         {"INI format: malformed section header keys not loaded",       test_ini_malformed_section_header_keys_not_loaded},
         {"INI format: duplicate key last value wins",                  test_ini_duplicate_key_last_value_wins},
         {"INI format: value of all whitespace gives empty string",     test_ini_value_all_whitespace_gives_empty_string},
+        {"INI format: file version higher than schema loads ok",      test_ini_file_version_higher_than_schema_loads_ok},
+        {"INI format: saved file has type annotation",                test_ini_saved_file_has_type_annotation},
     });
 }

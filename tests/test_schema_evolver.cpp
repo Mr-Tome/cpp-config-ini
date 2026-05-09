@@ -306,6 +306,18 @@ static bool test_evolve_orphaned_policy_remove()
     return true;
 }
 
+static bool test_orphaned_section_RuntimeError_throws()
+{
+    auto schema = makeSchema(); // only "Settings" section
+    RawConfigMap raw;
+    raw["Settings"]["count"]    = "5";
+    raw["Settings"]["ratio"]    = "1.0";
+    raw["Settings"]["verbose"]  = "false";
+    raw["OldSection"]["legacy"] = "42"; // entire section not in schema
+    REQUIRE_THROWS(evolveFileWithSchema(raw, schema, OrphanedConfigItemPolicy::RuntimeError));
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -326,5 +338,6 @@ int main()
         {"isClean: false after validation failure",                 test_isClean_returns_false_after_validation_failure},
         {"orphaned item: fields sectionName/configItemName/rawValue", test_orphaned_item_fields_are_correct},
         {"OrphanedConfigItemPolicy::Remove records orphan",        test_evolve_orphaned_policy_remove},
+        {"OrphanedPolicy::RuntimeError on orphaned section throws", test_orphaned_section_RuntimeError_throws},
     });
 }

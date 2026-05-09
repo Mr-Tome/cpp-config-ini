@@ -171,10 +171,17 @@ static bool test_inList_single_element_passes_and_fails()
 {
     auto rule = ValidationRules::inList({"only"});
     REQUIRE(!rule->toString().empty());
-    auto match  = strVal("only");
+    auto match   = strVal("only");
     auto nomatch = strVal("other");
     REQUIRE((*rule)(match)   == true);
     REQUIRE((*rule)(nomatch) == false);
+    return true;
+}
+
+static bool test_greaterThanOrEqualToZero_with_string_returns_false()
+{
+    auto v = strVal("hello");
+    REQUIRE(ValidationRules::greaterThanOrEqualToZero(v) == false);
     return true;
 }
 
@@ -202,5 +209,6 @@ int main()
         {"inList: empty list always fails",              test_inList_empty_list_always_fails},
         {"betweenValues: min == max boundary",           test_betweenValues_min_equals_max},
         {"inList: single element passes and fails",      test_inList_single_element_passes_and_fails},
+        {"greaterThanOrEqualToZero: string value returns false", test_greaterThanOrEqualToZero_with_string_returns_false},
     });
 }
