@@ -40,15 +40,15 @@ struct CLIKeyMap
 	std::set<std::string> ambiguousKeysWhenFlat;
 };
 
-CLIKeyMap buildCLIKeyMap(const std::vector<ConfigSection>& sections);
+[[nodiscard]] CLIKeyMap buildCLIKeyMap(const std::vector<ConfigSection>& sections);
 
-ParsedCLIArgs parseCLIArgs(
+[[nodiscard]] ParsedCLIArgs parseCLIArgs(
 	const std::vector<std::string>& rawArgs,
 	const std::vector<ConfigSection>& sections,
 	const CLIKeyMap& keyMap,
 	bool flatEnabled);
 
-std::string preParseArgsForConfigPath(int argc, char* argv[]);
+[[nodiscard]] std::string preParseArgsForConfigPath(int argc, char* argv[]);
 
 } // namespace Internal
 } // namespace ConfigLib

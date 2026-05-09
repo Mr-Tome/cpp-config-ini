@@ -64,7 +64,7 @@ struct SchemaEvolutionResult
 	
 	bool fileModified = false;
 	
-	std::size_t numberOfConflicts() const
+	[[nodiscard]] std::size_t numberOfConflicts() const
 	{
 		std::size_t n = 0;
 		for(const auto& section : addedSections)
@@ -79,13 +79,13 @@ struct SchemaEvolutionResult
 		return n;
 	}
 	
-	bool isClean() const {return !fileModified;}
+	[[nodiscard]] bool isClean() const {return !fileModified;}
 };
 
 
 using RawConfigMap = std::map<std::string, std::map<std::string, std::string>>;
 
-SchemaEvolutionResult evolveFileWithSchema(
+[[nodiscard]] SchemaEvolutionResult evolveFileWithSchema(
 	const RawConfigMap& rawConfig,
 	const std::vector<ConfigSection>& currentSchema,
 	OrphanedConfigItemPolicy policy = OrphanedConfigItemPolicy::CommentOut

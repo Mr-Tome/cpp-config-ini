@@ -86,17 +86,17 @@ public:
 		init(static_cast<Derived&>(*this), configFilePathOverride);
 	}
 
-	OrphanedConfigItemPolicy getOrphanedConfigItemPolicy() const
+	[[nodiscard]] OrphanedConfigItemPolicy getOrphanedConfigItemPolicy() const
 	{
 		return OrphanedConfigItemPolicy::CommentOut;
 	}
 
-	uint32_t getSchemaVersion() const
+	[[nodiscard]] uint32_t getSchemaVersion() const
 	{
 		std::cout << "ini_config_reader.hpp: getSchemaVersion() " << std::endl;
 		return Migration::invalidSchemaVersion;
 	}
-	std::vector<SchemaMigration> getMigrations() const { return {}; }
+	[[nodiscard]] std::vector<SchemaMigration> getMigrations() const { return {}; }
 
 	void saveConfig() const
 	{

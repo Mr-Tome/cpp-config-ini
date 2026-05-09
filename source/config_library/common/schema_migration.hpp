@@ -159,7 +159,7 @@ inline SectionScopedMigration transformKey(
 // then:
 // returns N if found, invalidSchemaVersion (0) otherwise. 
 // stops scanning at the first non-comment line and non-blank line.	
-uint32_t parseSchemaVersion(const std::string& filePath);
+[[nodiscard]] uint32_t parseSchemaVersion(const std::string& filePath);
 
 struct MigrationChange
 {
@@ -177,9 +177,9 @@ struct MigrationResult
 	uint32_t schemaVersion = 0;
 	std::vector<MigrationChange> changes;
 	
-	bool ranAny() const 
-	{ 
-		return !changes.empty(); 
+	[[nodiscard]] bool ranAny() const
+	{
+		return !changes.empty();
 	}
 };
 
@@ -188,7 +188,7 @@ struct MigrationResult
 // second pass is RenameSection
 // Note: within each pass, migrations are applied in ascending fromVersion order, e.g.,
 // 1,3,5,6,7,...,n 
-std::pair<RawConfigMap, MigrationResult>  applyMigrations(
+[[nodiscard]] std::pair<RawConfigMap, MigrationResult> applyMigrations(
 	RawConfigMap rawConfig,
 	const std::vector<SchemaMigration>& migrations,
 	uint32_t fileVersion,

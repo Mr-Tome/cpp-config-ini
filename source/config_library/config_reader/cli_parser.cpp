@@ -29,7 +29,7 @@ bool tryParseLibProvidedCLIFlags(
 	const std::string configPrefix = "--config=";
 	const std::string exportPrefix = "--export=";
 
-	if(arg.substr(0,flatPrefix.size()) == flatPrefix)
+	if(arg.starts_with(flatPrefix))
 	{
 		const std::string value = arg.substr(flatPrefix.size());
 		if(value.empty())
@@ -48,7 +48,7 @@ bool tryParseLibProvidedCLIFlags(
 		return true;
 	}
 
-	if(arg.substr(0,configPrefix.size()) == configPrefix)
+	if(arg.starts_with(configPrefix))
 	{
 		flags.config_path = arg.substr(configPrefix.size());
 		if(flags.config_path.empty())
@@ -57,7 +57,7 @@ bool tryParseLibProvidedCLIFlags(
 		return true;
 	}
 
-	if(arg.substr(0,exportPrefix.size()) == exportPrefix)
+	if(arg.starts_with(exportPrefix))
 	{
 		flags.export_path = arg.substr(exportPrefix.size());
 		if(flags.export_path.empty())
@@ -101,7 +101,7 @@ void parseIntoParsedCLIArgs(
 				"Malformed argument '" + arg + "': key name is empty. "
 				"Expected --key=<value> or --Section.key=<value>.");
 
-		if (keyMap.ambiguousKeysWhenFlat.find(flatKey) != keyMap.ambiguousKeysWhenFlat.end())
+		if (keyMap.ambiguousKeysWhenFlat.contains(flatKey))
 			throw std::runtime_error(
 				"Ambiguous key '" + flatKey + "' in argument '" + arg + "': "
 				"this key exists in multiple sections. "
@@ -144,7 +144,7 @@ void parseIntoParsedCLIArgs(
 			"Unknown section '" + section + "' in argument '"+arg+"'."
 			"To see available sections and keys, run with  --help.");
 
-	if(sectionIt->second.find(key) == sectionIt->second.end())
+	if(!sectionIt->second.contains(key))
 		throw std::runtime_error(
 			"Unknown key '"+key+"' in section '" + section + "' in argument '"+arg+"'."
 			"To see available sections and keys, run with --help.");
@@ -205,7 +205,7 @@ CLIKeyMap buildCLIKeyMap(const std::vector<ConfigSection>& sections)
 				result.qualifiedToFlat[pair] = item.name;
 			}
 			else if ((count > 1 && !ownerIsEmpty) ||
-					 reservedFlatKeys().count(item.name))
+					 reservedFlatKeys().contains(item.name))
 			{
 				result.ambiguousKeysWhenFlat.insert(item.name);
 			}
@@ -258,7 +258,7 @@ std::string preParseArgsForConfigPath(int argc, char* argv[])
 	for (int i = 0; i < argc; ++i)
 	{
 		auto arg = std::string(argv[i]);
-		if(arg.substr(0,configPrefix.size()) == configPrefix)
+		if(arg.starts_with(configPrefix))
 		{
 			result = arg.substr(configPrefix.size());
 			if(result.empty())

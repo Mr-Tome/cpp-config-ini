@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <stdexcept>
 #include <iostream>
 #include <unordered_map>
@@ -57,9 +58,9 @@ SectionConflict& findOrInsertSectionConflict(
     SchemaEvolutionResult& result,
     const std::string& sectionName)
 {
-    for (auto& conflictingSection : result.conflictingSections)
-        if (conflictingSection.sectionName == sectionName)
-            return conflictingSection;
+    auto it = std::ranges::find(result.conflictingSections, sectionName, &SectionConflict::sectionName);
+    if (it != result.conflictingSections.end())
+        return *it;
 
     SectionConflict newConflictingSection;
     newConflictingSection.sectionName = sectionName;

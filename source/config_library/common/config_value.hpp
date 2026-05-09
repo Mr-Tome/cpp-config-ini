@@ -48,7 +48,8 @@ private:
 
 //specialization used for numeric types like doubles, ints, etc....
 template<typename T>
-class TypedConfigValue<T, typename std::enable_if<std::is_arithmetic<T>::value>::type> : public NumericConfigValue 
+  requires std::is_arithmetic_v<T>
+class TypedConfigValue<T, void> : public NumericConfigValue
 {
 public:
 	TypedConfigValue(const T& val) : value(val) {}

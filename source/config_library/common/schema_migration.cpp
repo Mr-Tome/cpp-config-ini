@@ -29,8 +29,7 @@ uint32_t parseSchemaVersion(const std::string& filePath)
 			continue;
 		
 		
-		if (trimmed.size() >= schemaString.size() && 
-			trimmed.substr(0, schemaString.size()) == schemaString)
+		if (trimmed.starts_with(schemaString))
 		{
 			try
 			{
@@ -68,7 +67,7 @@ std::vector<const SchemaMigration*> collectMigrationsAcrossVersionGap(
 		if(m.fromVersion>= fileVersion && m.toVersion <= schemaVersion)
 			result.push_back(&m);
 	
-	std::sort(result.begin(), result.end(), 
+	std::ranges::sort(result,
 			[](const SchemaMigration* a, const SchemaMigration* b)
 			{
 				return a->fromVersion < b->fromVersion;
@@ -190,17 +189,16 @@ void applyRenameSections(
 			rawConfig[m->newSection][child.oldKey] = newValue;
 
 			// update the entire section move change record if it exists, otherwise add new entry
-			bool found = false;
-			for (auto& change : result.changes)
-			{
-				if (change.newSection == m->newSection && change.newKey == child.oldKey)
+			auto changeIt = std::ranges::find_if(result.changes,
+				[&](const MigrationChange& c)
 				{
-					change.newValue = newValue;
-					found = true;
-					break;
-				}
+					return c.newSection == m->newSection && c.newKey == child.oldKey;
+				});
+			if (changeIt != result.changes.end())
+			{
+				changeIt->newValue = newValue;
 			}
-			if (!found)
+			else
 			{
 				MigrationChange change;
 				change.oldSection = m->newSection;

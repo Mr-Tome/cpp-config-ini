@@ -66,8 +66,8 @@ std::vector<ConfigSection> mergeDuplicateSections(const std::vector<ConfigSectio
 			ConfigSection& target = merged[it->second];
 			for (const auto& item : section.items)
 			{
-				const bool duplicate = std::any_of(
-					target.items.begin(), target.items.end(),
+				const bool duplicate = std::ranges::any_of(
+					target.items,
 					[&](const ConfigItem& existing){ return existing.name == item.name; });
 				if (duplicate)
 					throw std::runtime_error(

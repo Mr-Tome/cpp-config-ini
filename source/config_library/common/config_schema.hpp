@@ -99,20 +99,20 @@ struct ConfigSection
    std::vector<ConfigItem> items;
 };
 
-bool validateConfig(const std::vector<ConfigSection>& sections);
+[[nodiscard]] bool validateConfig(const std::vector<ConfigSection>& sections);
 
-std::vector<ConfigSection> mergeDuplicateSections(const std::vector<ConfigSection>& sections);
+[[nodiscard]] std::vector<ConfigSection> mergeDuplicateSections(const std::vector<ConfigSection>& sections);
 
 namespace Internal
 {
 // sectionName -> set of item names. useful for key-existence checks
 using SchemaLookup = std::unordered_map<std::string, std::unordered_set<std::string>>;
-SchemaLookup buildSchemaLookup(const std::vector<ConfigSection>& sections);
+[[nodiscard]] SchemaLookup buildSchemaLookup(const std::vector<ConfigSection>& sections);
 
 // sectionName -> itemName -> ConfigItem*.
 // Note: ConfigItem* are valid for the lifetime of 'sections'.
 using SchemaItemLookup = std::unordered_map<std::string, std::unordered_map<std::string, const ConfigItem*>>;
-SchemaItemLookup buildSchemaItemLookup(const std::vector<ConfigSection>& sections);
+[[nodiscard]] SchemaItemLookup buildSchemaItemLookup(const std::vector<ConfigSection>& sections);
 } // namespace Internal
 
 } // namespace ConfigLib

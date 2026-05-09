@@ -19,7 +19,7 @@ public:
     virtual ~ConfigReaderBase() = default;
     
 	template<typename T>
-	T getValue(const std::string& section, const std::string& key) const 
+	[[nodiscard]] T getValue(const std::string& section, const std::string& key) const
 	{
 		std::cout << "Attempting to get value for section: " << section 
 				  << ", key: " << key << std::endl;
@@ -45,7 +45,7 @@ public:
 		sect_it->second.setValue(key, value);
 	}
     
-    const std::unordered_map<std::string, ConfigSectionStore>& getSections() const { return sections; }
+    [[nodiscard]] const std::unordered_map<std::string, ConfigSectionStore>& getSections() const { return sections; }
     
 protected:
 	//should just validate schema really...

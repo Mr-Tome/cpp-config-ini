@@ -153,8 +153,7 @@ private:
 
 		for(const auto& arg : this->rawCLIArgs)
 		{
-			if(arg.size() > flatPrefix.size() &&
-				arg.substr(0,flatPrefix.size())==flatPrefix)
+			if(arg.starts_with(flatPrefix))
 			{
 				const std::string val = arg.substr(flatPrefix.size());
 				try
@@ -244,7 +243,7 @@ private:
 	// returns a copy of configSections with all volatile items stripped out.
 	// used by persistSave and persistExport so volatile fields are never written
 	// to any file [(IHT 2026.03.22): currently not used anywhere , but maybe bring back someday?]
-	static std::vector<ConfigSection> withoutVolatileItems(
+	[[nodiscard]] static std::vector<ConfigSection> withoutVolatileItems(
 		const std::vector<ConfigSection>& configSections)
 	{
 		std::vector<ConfigSection> filtered;
@@ -274,8 +273,7 @@ private:
 			{
 				if(item.persistence != Persistence::Volatile) continue;
 				
-				if(parsed.values.find({section.name, item.name}) 
-						== parsed.values.end())
+				if(!parsed.values.contains({section.name, item.name}))
 				{
 					missingVolatile.push_back(
 						" --" + section.name + "." + item.name
@@ -339,7 +337,7 @@ private:
 				line << "  --" << section.name << "." <<item.name
 					 << "=<" << item.type << ">";
 					 
-				if (keyMap.ambiguousKeysWhenFlat.find(item.name) != keyMap.ambiguousKeysWhenFlat.end())
+				if (keyMap.ambiguousKeysWhenFlat.contains(item.name))
 				{
 					line << "*";
 				}

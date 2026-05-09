@@ -31,7 +31,7 @@ std::string BetweenValues::toString() const {
 
 bool InList::operator()(const ConfigLib::ConfigValue& value) const {
 	const ConfigLib::TypedConfigValue<std::string>* stringValue = dynamic_cast<const ConfigLib::TypedConfigValue<std::string>*>(&value);
-	return stringValue && std::find(validValues_.begin(), validValues_.end(), stringValue->getValue()) != validValues_.end();
+	return stringValue && std::ranges::find(validValues_, stringValue->getValue()) != validValues_.end();
 }
 
 std::string InList::toString() const {
@@ -50,11 +50,11 @@ const GreaterThanOrEqualToZero greaterThanOrEqualToZero;
 
 // Factory functions for rules with parameters
 std::unique_ptr<Rule> betweenValues(double min, double max) {
-	return std::unique_ptr<Rule>(new BetweenValues(min, max));
+	return std::make_unique<BetweenValues>(min, max);
 }
 
 std::unique_ptr<Rule> inList(const std::vector<std::string>& validValues) {
-	return std::unique_ptr<Rule>(new InList(validValues));
+	return std::make_unique<InList>(validValues);
 }
 
 } //namespace ValidationRules

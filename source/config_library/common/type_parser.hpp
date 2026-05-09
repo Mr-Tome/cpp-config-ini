@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <string>
 #include <memory>
 #include <functional>
@@ -36,51 +37,11 @@ struct TypeParser
 };
     
 
-// workaround for c++11 not having constexpr in the way i used.
-// this uses type trait to detect if a type has a valid "TypeParser" specialization
 template<typename T>
-struct has_type_parser // see trait class
-{
-private:
-	template<typename U>
-	static auto test_from_string(int) -> decltype(
-		TypeParser<U>::fromString(std::declval<std::string>()),
-		std::true_type{}
-	);
-	template<typename>
-	static std::false_type test_from_string(...); // fallback
-	
-	template<typename U>
-	static auto test_to_string(int) -> decltype(
-		TypeParser<U>::toString(std::declval<U>()),
-		std::true_type{}
-	);
-	template<typename>
-	static std::false_type test_to_string(...); // fallback
-	
-	template<typename U>
-	static auto test_type_name(int) -> decltype(
-		TypeParser<U>::typeName(),
-		std::true_type{}
-	);
-	template<typename>
-	static std::false_type test_type_name(...); // fallback
-	
-	
-	template<typename U>
-	static auto test_is_valid(int) -> decltype(
-		TypeParser<U>::isValid(std::declval<std::string>()),
-		std::true_type{}
-	);
-	template<typename>
-	static std::false_type test_is_valid(...); // fallback
-public:
-	static const bool value = 
-		decltype(test_from_string<T>(0))::value &&
-		decltype(test_to_string<T>(0))::value &&
-		decltype(test_type_name<T>(0))::value; 
-		//&& decltype(test_is_valid<T>(0))::value;
-};
+concept HasTypeParser =
+	requires { TypeParser<T>::fromString(std::string{}); } &&
+	requires { TypeParser<T>::toString(std::declval<const T&>()); } &&
+	requires { TypeParser<T>::typeName(); };
     
 
 class TypeRegistry {
@@ -97,7 +58,7 @@ public:
 	template<typename T>
 	void registerType()
 	{
-		static_assert(has_type_parser<T>::value, 
+		static_assert(HasTypeParser<T>,
 			"Type must have TypeParser specialization with fromString, toString, typeName, and isValid methods. "
 			"Please check to ensure all three methods are defined in your specialization!"); // TODO movoe this static_assert to has_type_parser struct.
 		
@@ -213,9 +174,10 @@ ConfigType<Derived>::Registrar::Registrar()
 	TypeRegistry::instance().registerType<Derived>();
 }
 
-// SFINAE TypeParser Specialization for ConfigType's derived types
+// C++20 requires-constrained TypeParser specialization for ConfigType-derived types
 template<typename Derived>
-struct TypeParser<Derived, typename std::enable_if<std::is_base_of<ConfigType<Derived>, Derived>::value>::type> 
+	requires std::derived_from<Derived, ConfigType<Derived>>
+struct TypeParser<Derived, void>
 {        
 	static Derived fromString(const std::string& str) 
 	{
