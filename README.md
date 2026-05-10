@@ -108,7 +108,7 @@ ConfigLib::ConfigItem::make<T>(name, default, description, rule, persistence)
 
 | Parameter | What it is |
 |---|---|
-| `T` | C++ type: `int`, `double`, `bool`, `std::string`, `std::vector<T>`, or a custom type |
+| `T` | Built-in scalars: `int`, `double`, `float`, `bool`, `std::string`, `long`, `long long`, `long double`, `unsigned int`, `unsigned long`, `unsigned long long`. Built-in vectors: `std::vector<int>`, `std::vector<double>`, `std::vector<std::string>`. For anything else, see [Custom Types](#custom-types). |
 | `name` | The key name written in the INI file |
 | `default` | The value used when the file is first created, or if the key is absent |
 | `description` | Written as a comment in the INI file so end-users understand each setting |
@@ -345,7 +345,7 @@ std::vector<ConfigLib::SchemaMigration> getMigrations() const
 
 On the next run, the library:
 1. Reads `# __schema_version__ = 1` from the file.
-2. Finds migrations where `fromVersion == 1` and applies them — `hostname` → `host`, preserving the user's stored value.
+2. Finds migrations where `fromVersion == 1` and applies them — `hostname` --> `host`, preserving the user's stored value.
 3. Rewrites the file with `# __schema_version__ = 2`.
 
 The file on disk afterward:
