@@ -84,18 +84,15 @@ flowchart TB
 
 ### Sections and Keys
 
-An INI file groups related settings under named **sections**, each containing **key/value pairs**:
+An INI file groups related settings under named **sections**, each containing **key/value pairs**. Comments begin with `#` and may appear inline after a value or on their own line. The library writes metadata as inline comments:
 
 ```ini
 [Server]
-; type: string | Server hostname
-host = localhost
-; type: int | Server port
-port = 8080
+host = localhost # type: string, description: Server hostname
+port = 8080 # type: int, description: Server port (validationRule: Must be greater than zero)
 
 [Database]
-; type: int | Connection pool size
-pool_size = 10
+pool_size = 10 # type: int, description: Connection pool size
 ```
 
 - A **section** (`[Server]`) groups related keys — equivalent to `ConfigSection` in code.
