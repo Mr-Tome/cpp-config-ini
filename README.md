@@ -210,11 +210,129 @@ config.saveConfig();
 
 #### Schema versioning and migration
 
-When you rename a field or change a value format, increment `getSchemaVersion()` and describe the upgrade in `getMigrations()`. The library applies the steps automatically when it loads an older file.
+When your schema changes — a field is renamed, moved to a different section, or its stored format changes — the library can migrate existing files automatically. On startup it reads the version stored in the file, compares it to `getSchemaVersion()`, and applies only the migrations needed to bring the file up to date. No manual file editing is required from end users.
+
+**The version line**
+
+When `getSchemaVersion()` returns a non-zero value, the library writes a version header as the first line of the INI file:
+
+```ini
+# __schema_version__ = 2
+
+# Configuration file
+
+[Server]
+host = localhost # type: string, description: Server hostname
+port = 8080 # type: int, description: Server port (validationRule: Must be greater than zero)
+```
+
+Files that predate versioning have no such line and are treated as version 0.
+
+**Declaring the current version**
 
 ```cpp
 uint32_t getSchemaVersion() const { return 2; }
+```
 
+**Migration types**
+
+| Helper | What it does |
+|---|---|
+| `rename(from, to, oldSection, oldKey, newSection, newKey, fn)` | Moves a key's value to a new name, optionally across sections. Pass `fn` to also transform the value. |
+| `transformInPlace(from, to, section, key, fn)` | Applies `fn` to the stored value of a key without renaming it. |
+| `renameSection(from, to, oldSection, newSection, children)` | Moves all keys from one section to another. Optional `children` rename or transform individual keys as part of the move. |
+
+**`rename` — rename a key, optionally across sections**
+
+```cpp
+// Server.hostname -> Server.host (same section, different name)
+ConfigLib::Migration::rename(1, 2, "Server", "hostname", "Server", "host")
+
+// Network.port -> Server.port (different section, same name)
+ConfigLib::Migration::rename(1, 2, "Network", "port", "Server", "port")
+
+// Rename and transform: convert stored seconds to milliseconds
+ConfigLib::Migration::rename(1, 2, "Server", "timeout_s", "Server", "timeout_ms",
+    [](const std::string& v) { return std::to_string(std::stoi(v) * 1000); })
+```
+
+**`transformInPlace` — change a stored value without renaming**
+
+```cpp
+// Double the pool_size value in place
+ConfigLib::Migration::transformInPlace(1, 2, "Database", "pool_size",
+    [](const std::string& v) { return std::to_string(std::stoi(v) * 2); })
+```
+
+**`renameSection` — rename a section with optional per-key renames and transforms**
+
+```cpp
+// [Physics] -> [Dynamics], with key-level renames and a value transform
+ConfigLib::Migration::renameSection(1, 2, "Physics", "Dynamics", {
+    ConfigLib::Migration::renameKey("dt", "timestep"),         // Physics.dt  -> Dynamics.timestep
+    ConfigLib::Migration::transformKey("timestep", scaleFn),   // transform Dynamics.timestep value
+    ConfigLib::Migration::renameKey("mass", "mass", unitFn)    // rename-to-self, then transform
+})
+```
+
+`renameKey` steps run first, then remaining keys are moved, then `transformKey` steps run — all within the same migration.
+
+**Declaring migrations**
+
+Return all migrations from `getMigrations()`. The library selects only those whose `fromVersion` matches the file's current version and steps through them in order until the file reaches the current schema version.
+
+```cpp
+std::vector<ConfigLib::SchemaMigration> getMigrations() const
+{
+    return {
+        // v1 -> v2: rename the key
+        ConfigLib::Migration::rename(1, 2, "Server", "hostname", "Server", "host"),
+        // v2 -> v3: transform the stored value in place
+        ConfigLib::Migration::transformInPlace(2, 3, "Server", "port",
+            [](const std::string& v) { return std::to_string(std::stoi(v) + 1000); })
+    };
+}
+```
+
+---
+
+#### Step-by-step: migrating a schema from v1 to v2
+
+Suppose your v1 INI file on disk looks like this:
+
+```ini
+# __schema_version__ = 1
+
+[Server]
+hostname = localhost # type: string, description: Server hostname
+port = 8080 # type: int, description: Server port
+```
+
+You decide to rename `hostname` to `host`. Here is the complete change.
+
+**1. Update the schema**
+
+```cpp
+std::vector<ConfigLib::ConfigSection> getConfigSections() const
+{
+    return {
+        { "Server", {
+            ConfigLib::ConfigItem::make<std::string>("host", "localhost", "Server hostname"),
+            ConfigLib::ConfigItem::make<int>("port", 8080, "Server port", &ValidationRules::greaterThanZero)
+        }}
+    };
+}
+```
+
+**2. Increment the version**
+
+```cpp
+uint32_t getSchemaVersion() const { return 2; }
+```
+
+**3. Describe the change**
+
+```cpp
 std::vector<ConfigLib::SchemaMigration> getMigrations() const
 {
     return {
@@ -223,7 +341,26 @@ std::vector<ConfigLib::SchemaMigration> getMigrations() const
 }
 ```
 
-See `examples/cli_and_ini/color_migration.cpp` for a full walkthrough including value transforms.
+**4. What happens at startup**
+
+On the next run, the library:
+1. Reads `# __schema_version__ = 1` from the file.
+2. Finds migrations where `fromVersion == 1` and applies them — `hostname` → `host`, preserving the user's stored value.
+3. Rewrites the file with `# __schema_version__ = 2`.
+
+The file on disk afterward:
+
+```ini
+# __schema_version__ = 2
+
+[Server]
+host = localhost # type: string, description: Server hostname
+port = 8080 # type: int, description: Server port (validationRule: Must be greater than zero)
+```
+
+On all subsequent runs the file is already at v2, so no migrations run.
+
+See `examples/cli_and_ini/color_migration.cpp` for a complete example that adds a new field to a custom type using `transformInPlace`.
 
 #### Orphaned item policy
 
@@ -250,7 +387,7 @@ bool flattenCLIArgs() const { return false; } // require --Server.port=9090
 Mark a field `Persistence::Volatile` to make it CLI-only — it is never written to the INI file and must be supplied on every run.
 
 ```cpp
-ConfigLib::ConfigItem::make<std::string>("run_id", std::string(""), "Unique run ID",
+ConfigLib::ConfigItem::make<std::string>("run_id", "", "Unique run ID",
     nullptr, ConfigLib::Persistence::Volatile)
 ```
 
@@ -271,11 +408,14 @@ Parameterized classes (instantiate and keep alive for the lifetime of the config
 
 #### Compile-time validation
 
-For the stateless singleton rules, you can move the check to compile time by passing the default and rule as template parameters. A bad default becomes a build error instead of a runtime failure:
+Stateless singleton rules (`GreaterThanZero`, `GreaterThanOrEqualToZero`) can be passed as template parameters so the default is validated at compile time. Parameterized rules like `BetweenValues` carry runtime state and must be instantiated as static objects instead:
 
 ```cpp
-// Default and rule are template parameters — validated at compile time.
-// Also wires up runtime validation automatically.
+// BetweenValues requires runtime instantiation — declare as a static and pass by address:
+static const ValidationRules::BetweenValues between1And65535(1, 65535);
+ConfigLib::ConfigItem::make<int>("port", 8080, "Server port", &between1And65535)
+
+// Stateless rules can be validated at compile time — a bad default is a build error:
 ConfigLib::ConfigItem::make<int, 8080, ValidationRules::GreaterThanZero>("port", "Server port")
 ConfigLib::ConfigItem::make<int, 0,    ValidationRules::GreaterThanOrEqualToZero>("count", "Item count")
 
