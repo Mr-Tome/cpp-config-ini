@@ -20,18 +20,26 @@ namespace ValidationRules
         [[nodiscard]] virtual std::string toString() const = 0;
     };
 	
-	class GreaterThanZero : public Rule 
+	class GreaterThanZero : public Rule
 	{
     public:
         bool operator()(const ConfigLib::ConfigValue& value) const override;
         [[nodiscard]] std::string toString() const override { return "Must be greater than zero"; }
+
+        template<typename T> requires std::is_arithmetic_v<T>
+        [[nodiscard]] static constexpr bool check(T v) noexcept { return v > T{0}; }
+        [[nodiscard]] static const Rule* rulePtr() noexcept;
     };
-	
-	class GreaterThanOrEqualToZero : public Rule 
+
+	class GreaterThanOrEqualToZero : public Rule
 	{
 	public:
 		bool operator()(const ConfigLib::ConfigValue& value) const override;
 		[[nodiscard]] std::string toString() const override { return "Must be greater than or equal to zero"; }
+
+        template<typename T> requires std::is_arithmetic_v<T>
+        [[nodiscard]] static constexpr bool check(T v) noexcept { return v >= T{0}; }
+        [[nodiscard]] static const Rule* rulePtr() noexcept;
 	};
 	
 	class BetweenValues : public Rule 

@@ -185,6 +185,50 @@ static bool test_greaterThanOrEqualToZero_with_string_returns_false()
     return true;
 }
 
+// ─── constexpr check<T>() — evaluated at compile time ─────────────────────────
+
+static_assert( ValidationRules::GreaterThanZero::check(1),    "1 > 0");
+static_assert(!ValidationRules::GreaterThanZero::check(0),    "0 not > 0");
+static_assert(!ValidationRules::GreaterThanZero::check(-1),   "-1 not > 0");
+static_assert( ValidationRules::GreaterThanZero::check(0.5),  "0.5 > 0");
+static_assert(!ValidationRules::GreaterThanZero::check(-0.1), "-0.1 not > 0");
+
+static_assert( ValidationRules::GreaterThanOrEqualToZero::check(0),   "0 >= 0");
+static_assert( ValidationRules::GreaterThanOrEqualToZero::check(1),   "1 >= 0");
+static_assert(!ValidationRules::GreaterThanOrEqualToZero::check(-1),  "-1 not >= 0");
+static_assert( ValidationRules::GreaterThanOrEqualToZero::check(0.0), "0.0 >= 0");
+
+static bool test_constexpr_check_greaterThanZero()
+{
+    static_assert( ValidationRules::GreaterThanZero::check(1));
+    static_assert(!ValidationRules::GreaterThanZero::check(0));
+    static_assert(!ValidationRules::GreaterThanZero::check(-1));
+    REQUIRE( ValidationRules::GreaterThanZero::check(42));
+    REQUIRE(!ValidationRules::GreaterThanZero::check(0));
+    REQUIRE(!ValidationRules::GreaterThanZero::check(-99));
+    return true;
+}
+
+static bool test_constexpr_check_greaterThanOrEqualToZero()
+{
+    static_assert( ValidationRules::GreaterThanOrEqualToZero::check(0));
+    static_assert( ValidationRules::GreaterThanOrEqualToZero::check(1));
+    static_assert(!ValidationRules::GreaterThanOrEqualToZero::check(-1));
+    REQUIRE( ValidationRules::GreaterThanOrEqualToZero::check(0));
+    REQUIRE( ValidationRules::GreaterThanOrEqualToZero::check(10));
+    REQUIRE(!ValidationRules::GreaterThanOrEqualToZero::check(-1));
+    return true;
+}
+
+static bool test_rulePtr_returns_singleton_address()
+{
+    REQUIRE(ValidationRules::GreaterThanZero::rulePtr()
+            == &ValidationRules::greaterThanZero);
+    REQUIRE(ValidationRules::GreaterThanOrEqualToZero::rulePtr()
+            == &ValidationRules::greaterThanOrEqualToZero);
+    return true;
+}
+
 int main()
 {
     return runTests({
@@ -210,5 +254,8 @@ int main()
         {"betweenValues: min == max boundary",           test_betweenValues_min_equals_max},
         {"inList: single element passes and fails",      test_inList_single_element_passes_and_fails},
         {"greaterThanOrEqualToZero: string value returns false", test_greaterThanOrEqualToZero_with_string_returns_false},
+        {"constexpr check<T>: greaterThanZero",                  test_constexpr_check_greaterThanZero},
+        {"constexpr check<T>: greaterThanOrEqualToZero",         test_constexpr_check_greaterThanOrEqualToZero},
+        {"rulePtr: returns correct singleton address",            test_rulePtr_returns_singleton_address},
     });
 }

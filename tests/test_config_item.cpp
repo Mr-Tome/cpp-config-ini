@@ -72,16 +72,71 @@ static bool test_persistence_enum_values_distinct()
     return true;
 }
 
+static bool test_make_string_accepts_bare_literal()
+{
+    // Bare string literals should work without wrapping in std::string().
+    // The use-after-move concern is already handled: `validated` is used for
+    // toString(), not the potentially moved-from defaultVal.
+    auto item = ConfigLib::ConfigItem::make<std::string>("host", "localhost", "hostname");
+    REQUIRE_EQ(item.type,         std::string("string"));
+    REQUIRE_EQ(item.defaultValue, std::string("localhost"));
+    return true;
+}
+
+static bool test_make_constexpr_int_valid_default()
+{
+    auto item = ConfigLib::ConfigItem::make<int, 8080, ValidationRules::GreaterThanZero>(
+        "port", "Server port");
+    REQUIRE_EQ(item.name,         std::string("port"));
+    REQUIRE_EQ(item.type,         std::string("int"));
+    REQUIRE_EQ(item.defaultValue, std::string("8080"));
+    REQUIRE(item.validationRule != nullptr);
+    return true;
+}
+
+static bool test_make_constexpr_double_valid_default()
+{
+    auto item = ConfigLib::ConfigItem::make<double, 1.0, ValidationRules::GreaterThanOrEqualToZero>(
+        "ratio", "A ratio");
+    REQUIRE_EQ(item.type, std::string("double"));
+    REQUIRE(item.validationRule != nullptr);
+    return true;
+}
+
+static bool test_make_constexpr_zero_passes_gte_zero()
+{
+    // 0 is valid for GreaterThanOrEqualToZero but not GreaterThanZero
+    auto item = ConfigLib::ConfigItem::make<int, 0, ValidationRules::GreaterThanOrEqualToZero>(
+        "count", "A count");
+    REQUIRE_EQ(item.defaultValue, std::string("0"));
+    REQUIRE(item.validationRule != nullptr);
+    return true;
+}
+
+static bool test_make_constexpr_wires_up_runtime_rule()
+{
+    // The compile-time overload must also set up runtime validation.
+    auto item = ConfigLib::ConfigItem::make<int, 5, ValidationRules::GreaterThanZero>(
+        "x", "x value");
+    REQUIRE(item.validationRule == ValidationRules::GreaterThanZero::rulePtr());
+    return true;
+}
+
 int main()
 {
     return runTests({
-        {"ConfigItem::make<int>",                 test_make_int_sets_type_and_default},
-        {"ConfigItem::make<double>",              test_make_double_sets_type_and_default},
-        {"ConfigItem::make<bool>",                test_make_bool_sets_type},
-        {"ConfigItem::make<string>",              test_make_string_sets_type_and_default},
-        {"ConfigItem::make with validation rule", test_make_with_validation_rule},
-        {"ConfigItem::make Volatile persistence", test_make_volatile_persistence},
-        {"ConfigSection has name and items",      test_config_section_has_name_and_items},
-        {"Persistence enum values are distinct",  test_persistence_enum_values_distinct},
+        {"ConfigItem::make<int>",                       test_make_int_sets_type_and_default},
+        {"ConfigItem::make<double>",                    test_make_double_sets_type_and_default},
+        {"ConfigItem::make<bool>",                      test_make_bool_sets_type},
+        {"ConfigItem::make<string>",                    test_make_string_sets_type_and_default},
+        {"ConfigItem::make<string> bare literal",       test_make_string_accepts_bare_literal},
+        {"ConfigItem::make with validation rule",       test_make_with_validation_rule},
+        {"ConfigItem::make Volatile persistence",       test_make_volatile_persistence},
+        {"ConfigSection has name and items",            test_config_section_has_name_and_items},
+        {"Persistence enum values are distinct",        test_persistence_enum_values_distinct},
+        {"ConfigItem::make constexpr int valid",        test_make_constexpr_int_valid_default},
+        {"ConfigItem::make constexpr double valid",     test_make_constexpr_double_valid_default},
+        {"ConfigItem::make constexpr zero >= 0 valid",  test_make_constexpr_zero_passes_gte_zero},
+        {"ConfigItem::make constexpr wires runtime",    test_make_constexpr_wires_up_runtime_rule},
     });
 }

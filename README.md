@@ -80,6 +80,65 @@ flowchart TB
     Layers --> API
 ```
 
+## Core Concepts
+
+### Sections and Keys
+
+An INI file groups related settings under named **sections**, each containing **key/value pairs**:
+
+```ini
+[Server]
+; type: string | Server hostname
+host = localhost
+; type: int | Server port
+port = 8080
+
+[Database]
+; type: int | Connection pool size
+pool_size = 10
+```
+
+- A **section** (`[Server]`) groups related keys — equivalent to `ConfigSection` in code.
+- A **key** (`host`, `port`) is a named setting within a section — equivalent to one `ConfigItem`.
+
+### Declaring a Schema
+
+You describe this structure in `getConfigSections()`. Each `ConfigItem::make<T>()` call declares one key:
+
+```cpp
+ConfigLib::ConfigItem::make<T>(name, default, description, rule, persistence)
+```
+
+| Parameter | What it is |
+|---|---|
+| `T` | C++ type: `int`, `double`, `bool`, `std::string`, `std::vector<T>`, or a custom type |
+| `name` | The key name written in the INI file |
+| `default` | The value used when the file is first created, or if the key is absent |
+| `description` | Written as a comment in the INI file so end-users understand each setting |
+| `rule` | Optional validation rule. Pass `nullptr` for none |
+| `persistence` | `Persistence::Normal` (default) stores in the file; `Persistence::Volatile` is CLI-only |
+
+Putting it together:
+
+```cpp
+std::vector<ConfigLib::ConfigSection> getConfigSections() const
+{
+    return {
+        { "Server", {
+            ConfigLib::ConfigItem::make<std::string>("host", "localhost", "Server hostname"),
+            ConfigLib::ConfigItem::make<int>("port", 8080, "Server port", &ValidationRules::greaterThanZero)
+        }},
+        { "Database", {
+            ConfigLib::ConfigItem::make<int>("pool_size", 10, "Connection pool size")
+        }}
+    };
+}
+```
+
+This schema produces the INI file shown above on first run.
+
+---
+
 ## Implementing a Config Class
 
 Inherit from `ConfigLib::ConfigReader<YourClass, Modes...>` and implement the methods below. The table shows everything you can define at a glance:
@@ -112,8 +171,8 @@ struct MyConfig : public ConfigLib::ConfigReader<MyConfig, ConfigLib::INI>
     {
         return {
             { "Server", {
-                ConfigLib::ConfigItem::make<std::string>("host", std::string("localhost"), "Server hostname", nullptr),
-                ConfigLib::ConfigItem::make<int>("port", 8080, "Server port", nullptr)
+                ConfigLib::ConfigItem::make<std::string>("host", "localhost", "Server hostname"),
+                ConfigLib::ConfigItem::make<int>("port", 8080, "Server port")
             }}
         };
     }
@@ -212,6 +271,23 @@ ConfigLib::ConfigItem::make<int>("port", 8080, "Server port", &between1And65535)
 
 Built-in singletons (use directly by address): `greaterThanZero`, `greaterThanOrEqualToZero`.
 Parameterized classes (instantiate and keep alive for the lifetime of the config): `BetweenValues(min, max)`, `InList(vector<string>)`. Custom rules implement the `Rule` interface.
+
+#### Compile-time validation
+
+For the stateless singleton rules, you can move the check to compile time by passing the default and rule as template parameters. A bad default becomes a build error instead of a runtime failure:
+
+```cpp
+// Default and rule are template parameters — validated at compile time.
+// Also wires up runtime validation automatically.
+ConfigLib::ConfigItem::make<int, 8080, ValidationRules::GreaterThanZero>("port", "Server port")
+ConfigLib::ConfigItem::make<int, 0,    ValidationRules::GreaterThanOrEqualToZero>("count", "Item count")
+
+// This would fail to compile:
+// ConfigLib::ConfigItem::make<int, -1, ValidationRules::GreaterThanZero>("port", "Server port")
+// error: static_assert failed: "Default value violates compile-time validation rule"
+```
+
+Note: the default value must exactly match `T` — use `1.0` not `1` for `double`.
 
 ### Custom Types
 

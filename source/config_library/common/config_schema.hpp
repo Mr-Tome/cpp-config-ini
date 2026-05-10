@@ -6,8 +6,19 @@
 #include "type_parser.hpp"
 #include "validation_rules.hpp"
 
-namespace ConfigLib 
+namespace ConfigLib
 {
+
+// Satisfied by rule types that carry a constexpr check() and expose the runtime singleton.
+// Enables ConfigItem::make<T, DefaultVal, RuleType>() to validate defaults at compile time.
+template<typename RuleType, typename T>
+concept ConstexprValidatable =
+    std::is_arithmetic_v<T> &&
+    requires(T v) {
+        { RuleType::template check<T>(v) } -> std::same_as<bool>;
+        { RuleType::rulePtr() }            -> std::convertible_to<const ValidationRules::Rule*>;
+    };
+
 //intended to control the visibility/access in various I/O streams
 enum class Persistence
 {
@@ -90,6 +101,20 @@ public:
 				const ValidationRules::Rule* rule,
 				Persistence p = Persistence::Normal)
 	: ConfigItem(this->make<T>(itemName, itemDefaultValue,itemDescription,rule,p)){}
+
+   // Compile-time validated make: default value and rule are both template parameters,
+   // so the static_assert fires at the call site if the default violates the rule.
+   // Also wires up runtime validation via the rule singleton.
+   // Usage: ConfigItem::make<int, 8080, ValidationRules::GreaterThanZero>("port", "desc")
+   template<typename T, T DefaultVal, typename RuleType>
+       requires ConstexprValidatable<RuleType, T>
+   [[nodiscard]] static ConfigItem make(const std::string& name, const std::string& desc,
+                                         Persistence p = Persistence::Normal)
+   {
+       static_assert(RuleType::template check<T>(DefaultVal),
+                     "Default value violates compile-time validation rule");
+       return make<T>(name, DefaultVal, desc, RuleType::rulePtr(), p);
+   }
 };
 
 struct ConfigSection 

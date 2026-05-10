@@ -48,6 +48,9 @@ std::string InList::toString() const {
 const GreaterThanZero greaterThanZero;
 const GreaterThanOrEqualToZero greaterThanOrEqualToZero;
 
+const Rule* GreaterThanZero::rulePtr() noexcept          { return &greaterThanZero; }
+const Rule* GreaterThanOrEqualToZero::rulePtr() noexcept { return &greaterThanOrEqualToZero; }
+
 // Factory functions for rules with parameters
 std::unique_ptr<Rule> betweenValues(double min, double max) {
 	return std::make_unique<BetweenValues>(min, max);
