@@ -79,6 +79,7 @@ class ConfigReader :
 			>::type;
 public:
 	ConfigReader() {}
+	explicit ConfigReader(const std::string& configFilePath) : BaseReaderType(configFilePath) {}
 	ConfigReader(int argc, char* argv[]) : BaseReaderType(argc, argv)
 	{
 		static_assert(TypeInPack<CLI, ConfigReaderTypes...>,
