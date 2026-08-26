@@ -51,14 +51,14 @@ class CLIFeatureLayer : public Base
 public:
 	CLIFeatureLayer() : Base()
 	{
-		std::cout << "CLIFeatureLayer default constructor called" << std::endl;
+		//std::cout << "CLIFeatureLayer default constructor called" << std::endl;
 		init();
 	}
 	
 	CLIFeatureLayer(int argc, char* argv[])
 		: Base(Internal::preParseArgsForConfigPath(argc, argv))
 	{
-		std::cout << "CLIFeatureLayer argc & argv constructor called" << std::endl;
+		//std::cout << "CLIFeatureLayer argc & argv constructor called" << std::endl;
 		for (int i = 0; i < argc; ++i) rawCLIArgs.emplace_back(argv[i]);
 		init();
 	}
@@ -236,8 +236,8 @@ private:
 		
 		checkIfVolatileItemsWereParsed(configSections, parsed);
 		
-		std::cout << "CLIFeatureLayer: applied " << parsed.values.size()
-		          << " CLI override(s)" << std::endl;
+		//std::cout << "CLIFeatureLayer: applied " << parsed.values.size()
+		//          << " CLI override(s)" << std::endl;
 	}
 	
 	// returns a copy of configSections with all volatile items stripped out.
@@ -285,11 +285,12 @@ private:
 		if(!missingVolatile.empty())
 		{
 			std::string msg = 
-				"Missing required volatile field(s). "
+				"Missing required volatile field(s). \n"
 				"These must be supplied on every run via CLI:\n";
 			for(const auto& volatile_err_string : missingVolatile)
 				msg+= volatile_err_string + "\n";
 			
+			msg += "\nRun with --help to see all [REQUIRED] keys.\n";
 			throw std::runtime_error(msg);
 		}
 	}
@@ -312,13 +313,13 @@ private:
 			
 		std::cout << "\nProgram Usage: " << programName << " [options]\n";
 		
-		if (flatEnabled)
+		if (flatEnabled && !keyMap.ambiguousKeysWhenFlat.empty())
 			std::cout
 				<< "\nFlat lookup is ON: use --key=value as a shorthand instead of"
 				   " --Section.key=value.\n"
 				<< "Keys with a trailing *, in the schema below, collide with another section and"
 				   " always require --Section.key=value.\n";
-		else
+		else if (!flatEnabled)
 			std::cout
 				<< "\nFlat lookup is OFF: always use --Section.key=value.\n"
 				<< "Enable with --flat=true.\n";
@@ -334,10 +335,16 @@ private:
 				const auto qualifiedPair = std::make_pair(section.name, item.name);
 				
 				std::ostringstream line;
-				line << "  --" << section.name << "." <<item.name
-					 << "=<" << item.type << ">";
+
+				bool isAmbiguousWhenFlat = keyMap.ambiguousKeysWhenFlat.contains(item.name);
+				if(flatEnabled && !isAmbiguousWhenFlat)
+					line << "  --" << item.name
+						 << "=<"   << item.type << ">";
+				else
+					line << "  --" << section.name << "." <<item.name
+						 << "=<" << item.type << ">";
 					 
-				if (keyMap.ambiguousKeysWhenFlat.contains(item.name))
+				if (isAmbiguousWhenFlat)
 				{
 					line << "*";
 				}
@@ -385,6 +392,8 @@ private:
 			std::cout << "[" << section.name << "]\n";
 			for (const auto& item : section.items)
 			{
+				//TODO (IHT: 2026.08.26): Need a Persistence Required & Volatile mask..
+				//some people may want to comment this line out until there's a Required & volatile mask...
 				if (item.persistence == Persistence::Volatile) 
 					continue;
 				

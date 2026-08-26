@@ -231,9 +231,9 @@ ParsedCLIArgs parseCLIArgs(
 		if(arg.size() < 2 || arg[0] != '-' || arg[1] != '-')
 		{
 			throw std::runtime_error(
-				"Unrecognized argument '" + arg + "'."
-				"All arguments must start with '--'."
-				"Use --Section.key=value to override a config value."
+				"Unrecognized argument '" + arg + "' "
+				"All arguments must start with '--' "
+				"Use --Section.key=value to override a config value "
 				"or run --help to see all available options.");
 		}
 
